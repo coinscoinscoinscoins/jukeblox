@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 import SearchIcon from '@mui/icons-material/Search'
 import GroupIcon from '@mui/icons-material/Group'
 import AddCircleIcon from '@mui/icons-material/AddCircle'
-import { SpotifyClient } from '../../../spotify-utils/src'
 import { ConnectWallet, Wallet } from '@coinbase/onchainkit/wallet'
 import { useAccount } from 'wagmi'
 import CreateSessionForm from '../components/CreateSessionForm'
@@ -13,14 +12,8 @@ import CreateSessionForm from '../components/CreateSessionForm'
 
 
 
-interface HomePageProps {
-  clientId: string
-  clientSecret: string
-  redirectUri: string
-  onAuthenticated: (client: SpotifyClient) => void
-}
 
-const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: HomePageProps) => {
+const HomePage = () => {
   const account = useAccount();
   const { isAuthenticated } = useAuth();
 

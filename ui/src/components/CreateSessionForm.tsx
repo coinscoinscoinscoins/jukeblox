@@ -8,6 +8,7 @@ export default function CreateSessionForm() {
   const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
   const [startTime, setStartTime] = useState<string>(now.toISOString().slice(0, 16));
   const [endTime, setEndTime] = useState<string>(oneYearLater.toISOString().slice(0, 16));
+  const [sessionName, setSessionName] = useState<string>('My Music Session');
   
   const { 
     data: hash, 
@@ -27,17 +28,29 @@ export default function CreateSessionForm() {
     const startUnix = Math.floor(new Date(startTime).getTime() / 1000);
     const endUnix = Math.floor(new Date(endTime).getTime() / 1000);
     
+    // Hardcoded cost of 1 wei
+    const cost = BigInt(1);
+    
     writeContract({
       address: jukebloxContract,
       abi: JukebloxAbi,
       functionName: 'createSession',
-      args: [BigInt(startUnix), BigInt(endUnix)]
+      args: [BigInt(startUnix), BigInt(endUnix), sessionName, cost]
     });
   };
   
   return (
     <Box sx={{ mt: 4, p: 3, bgcolor: 'background.paper', borderRadius: 2 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>Create a New JukeBlox Session</Typography>
+      
+      <TextField
+        label="Session Name"
+        type="text"
+        value={sessionName}
+        onChange={(e) => setSessionName(e.target.value)}
+        fullWidth
+        margin="normal"
+      />
       
       <TextField
         label="Start Time"
@@ -59,13 +72,17 @@ export default function CreateSessionForm() {
         InputLabelProps={{ shrink: true }}
       />
       
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+        Cost per song request: 1 wei (hardcoded)
+      </Typography>
+      
       <Button 
         variant="contained" 
         color="primary"
         fullWidth
         sx={{ mt: 2 }}
         onClick={handleCreateSession}
-        disabled={!startTime || !endTime || isPending || isConfirming}
+        disabled={!sessionName || !startTime || !endTime || isPending || isConfirming}
       >
         {isPending || isConfirming ? (
           <><CircularProgress size={24} color="inherit" sx={{ mr: 1 }} /> Creating Session...</>
