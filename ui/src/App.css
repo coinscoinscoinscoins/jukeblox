@@ -48,15 +48,7 @@ main {
   border: none;
 }
 
-.login-button {
-  background-color: #1DB954;
-  color: white;
-}
 
-.login-button:hover {
-  background-color: #1ed760;
-  transform: scale(1.04);
-}
 
 .client-auth-button {
   background-color: transparent;
@@ -70,7 +62,7 @@ main {
 
 .auth-buttons button:disabled {
   background-color: #535353;
-  color: #a0a0a0;
+  /* color: #a0a0a0; */
   cursor: not-allowed;
 }
 
@@ -99,13 +91,6 @@ main {
   transition: filter 300ms;
 }
 
-.logo:hover {
-  filter: drop-shadow(0 0 2em rgba(100, 108, 255, 0.667));
-}
-
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em rgba(97, 218, 251, 0.667));
-}
 
 @keyframes logo-spin {
   from {

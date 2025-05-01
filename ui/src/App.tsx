@@ -16,7 +16,7 @@ import '@coinbase/onchainkit/styles.css';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1DB954', // Spotify green
+      main: '#FF4081', // cursor's jukebox pink
       contrastText: '#FFFFFF',
     },
     secondary: {
