@@ -68,6 +68,10 @@ const CreateSessionPage = () => {
     }
   };
 
+  const convertWeiToEth = (wei: number) => {
+    return (wei / 10 ** 9).toFixed(9);
+  }
+
   return (
     <Container maxWidth="md">
       <Box sx={{ 
@@ -148,6 +152,7 @@ const CreateSessionPage = () => {
                     borderRadius: 2
                   }
                 }}
+                helperText={`${cost} WEI = ${convertWeiToEth(Number(cost))} ETH`}
               />
             </Box>
 
