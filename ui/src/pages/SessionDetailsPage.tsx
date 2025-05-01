@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSession } from '../contexts/SessionContext';
 import { useReadContract } from 'wagmi';
 import { jukebloxContract, JukebloxAbi } from '../lib/JukebloxContract';
+import { SpotifyTrack } from '../types';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
@@ -46,6 +47,7 @@ interface SessionTrack {
   duration: number;
   albumArt?: string;
   addedBy: string;
+  isValid: boolean;
 }
 
 interface SessionData {
@@ -62,7 +64,7 @@ interface SessionData {
 
 const SessionDetailsPage = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, spotifyClient } = useAuth();
   const { currentSession, joinSession, leaveSession } = useSession();
   const navigate = useNavigate();
   
@@ -70,6 +72,7 @@ const SessionDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
+  const [trackDetails, setTrackDetails] = useState<Record<string, SpotifyTrack>>({});
 
   // Add contract read hook for song requests
   const { data: songRequests, isLoading: isLoadingSongs } = useReadContract({
@@ -87,6 +90,49 @@ const SessionDetailsPage = () => {
     args: sessionId ? [BigInt(sessionId.replace('session-', ''))] : undefined,
   });
 
+  // Fetch track details from Spotify
+  useEffect(() => {
+    const fetchTrackDetails = async () => {
+      if (!spotifyClient || !songRequests) return;
+
+      try {
+        const newTrackDetails: Record<string, SpotifyTrack> = {};
+        
+        for (const request of songRequests) {
+          if (trackDetails[request.songId]) continue; // Skip if we already have details
+          
+          try {
+            // Check if the songId is a valid Spotify track ID format
+            if (!/^[a-zA-Z0-9]{22}$/.test(request.songId)) {
+              console.warn(`Invalid Spotify track ID format: ${request.songId}`);
+              continue;
+            }
+
+            const results = await spotifyClient.search.search({
+              q: `track:${request.songId}`,
+              type: 'track',
+              limit: 1
+            });
+            
+            if (results.tracks?.items?.[0]) {
+              newTrackDetails[request.songId] = results.tracks.items[0];
+            } else {
+              console.warn(`No Spotify track found for ID: ${request.songId}`);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch details for track ${request.songId}:`, err);
+          }
+        }
+        
+        setTrackDetails(prev => ({ ...prev, ...newTrackDetails }));
+      } catch (err) {
+        console.error('Error fetching track details:', err);
+      }
+    };
+
+    fetchTrackDetails();
+  }, [spotifyClient, songRequests]);
+
   useEffect(() => {
     // Check if already joined this session
     if (currentSession && currentSession.id === sessionId) {
@@ -102,14 +148,21 @@ const SessionDetailsPage = () => {
         setLoading(true);
         
         // Convert song requests to our track format
-        const tracks = songRequests?.map((request, index) => ({
-          id: `track-${index}`,
-          name: request.songId, // Using songId as name for now
-          artist: 'Unknown Artist', // We don't have this data from contract
-          album: 'Unknown Album', // We don't have this data from contract
-          duration: 0, // We don't have this data from contract
-          addedBy: request.requester,
-        })) || [];
+        const tracks = songRequests?.map((request, index) => {
+          const spotifyTrack = trackDetails[request.songId];
+          const isValidSpotifyId = /^[a-zA-Z0-9]{22}$/.test(request.songId);
+          
+          return {
+            id: `track-${index}`,
+            name: spotifyTrack?.name || (isValidSpotifyId ? 'Loading...' : 'Invalid Track ID'),
+            artist: spotifyTrack?.artists?.[0]?.name || (isValidSpotifyId ? 'Loading...' : 'Unknown Artist'),
+            album: spotifyTrack?.album?.name || (isValidSpotifyId ? 'Loading...' : 'Unknown Album'),
+            duration: spotifyTrack?.duration_ms || 0,
+            albumArt: spotifyTrack?.album?.images?.[0]?.url || 'https://placehold.co/400x400?text=Invalid+Track',
+            addedBy: request.requester,
+            isValid: isValidSpotifyId
+          };
+        }) || [];
 
         // Create session data from contract data
         const sessionData: SessionData = {
@@ -140,7 +193,7 @@ const SessionDetailsPage = () => {
     if (sessionId && !isLoadingSongs && songRequests && sessionDetails) {
       fetchSessionData();
     }
-  }, [sessionId, currentSession, songRequests, sessionDetails, isLoadingSongs]);
+  }, [sessionId, currentSession, songRequests, sessionDetails, isLoadingSongs, trackDetails]);
 
   const handlePlayPause = () => {
     if (!session) return;
@@ -183,6 +236,50 @@ const SessionDetailsPage = () => {
     setHasJoined(false);
   };
   
+  // Update the track rendering to show invalid state
+  const renderTrackInfo = (track: SessionTrack) => {
+    if (!track.isValid) {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar 
+            variant="rounded"
+            src={track.albumArt}
+            alt={track.album}
+            sx={{ bgcolor: 'error.main' }}
+          >
+            <MusicNoteIcon />
+          </Avatar>
+          <Box sx={{ ml: 2 }}>
+            <Typography variant="body1" color="error">
+              {track.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Invalid Spotify Track ID
+            </Typography>
+          </Box>
+        </Box>
+      );
+    }
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Avatar 
+          variant="rounded"
+          src={track.albumArt}
+          alt={track.album}
+        >
+          <MusicNoteIcon />
+        </Avatar>
+        <Box sx={{ ml: 2 }}>
+          <Typography variant="body1">{track.name}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {track.artist} • {track.album}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  };
+
   if (loading) {
     return (
       <Container maxWidth="md">
@@ -345,19 +442,7 @@ const SessionDetailsPage = () => {
                 <List>
                   {session.queue.map((track, index) => (
                     <ListItem key={track.id} divider={index < session.queue.length - 1}>
-                      <ListItemAvatar>
-                        <Avatar 
-                          variant="rounded"
-                          src={track.albumArt}
-                          alt={track.album}
-                        >
-                          <MusicNoteIcon />
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText 
-                        primary={track.name}
-                        secondary={`${track.artist} • ${track.album}`}
-                      />
+                      {renderTrackInfo(track)}
                       <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
                         Added by Anonymous
                       </Typography>
