@@ -114,29 +114,6 @@ const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: Home
             >
               <SpotifyAuth />
             </Box>
-        <Box sx={{ width: '100%', maxWidth: 500, mb: 8 }}>
-          <Typography variant="body1" sx={{ mb: 4 }}>
-            JukeBlox lets you search for your favorite artists, albums, and tracks 
-            using the Spotify API. Login with your Spotify account to get started.
-          </Typography>
-          
-          <Box
-            sx={{
-              bgcolor: 'background.paper',
-              borderRadius: 2,
-              p: 4,
-              boxShadow: 3,
-              mb: 4,
-            }}
-          >
-            <SpotifyAuth
-              clientId={clientId}
-              clientSecret={clientSecret}
-              redirectUri={redirectUri}
-              onAuthenticated={onAuthenticated}
-            />
-          </Box>
-          </Box>
           </Box>
         )}
           
