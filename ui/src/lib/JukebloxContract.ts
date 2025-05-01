@@ -1,7 +1,7 @@
 import { Address } from 'viem';
 
 // Replace this with your actual deployed contract address on Base Sepolia
-export const jukebloxContract = "0xD69597CeCdCe55844Cd074274B67D11505168eFe" as Address;
+export const jukebloxContract = "0xf8afbc444a3540ca751f439e055a0b887263c648" as Address;
 
 export const JukebloxAbi = [
   {

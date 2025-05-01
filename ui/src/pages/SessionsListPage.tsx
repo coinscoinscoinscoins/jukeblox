@@ -23,6 +23,8 @@ import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
 import SortIcon from '@mui/icons-material/Sort';
 import AddIcon from '@mui/icons-material/Add';
+import { useReadContract } from 'wagmi';
+import { jukebloxContract, JukebloxAbi } from '../lib/JukebloxContract';
 
 // Mock data types
 interface SessionListItem {
@@ -43,6 +45,17 @@ const SessionsListPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Read total sessions from contract
+  const { 
+    data: totalSessions,
+    isLoading: isLoadingTotalSessions,
+    isError: isTotalSessionsError
+  } = useReadContract({
+    address: jukebloxContract,
+    abi: JukebloxAbi,
+    functionName: 'totalSessions',
+  });
   
   useEffect(() => {
     const fetchSessions = async () => {
@@ -157,9 +170,19 @@ const SessionsListPage = () => {
           </Button>
         </Box>
         
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Join an existing session or create your own collaborative music experience
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+          <Typography variant="body1" color="text.secondary" sx={{ flex: 1 }}>
+            Join an existing session or create your own collaborative music experience
+          </Typography>
+          
+          {!isLoadingTotalSessions && !isTotalSessionsError && totalSessions !== undefined && (
+            <Chip 
+              label={`Total Sessions: ${totalSessions.toString()}`} 
+              color="primary" 
+              variant="outlined"
+            />
+          )}
+        </Box>
         
         <Paper 
           component="form" 
@@ -250,18 +273,19 @@ const SessionsListPage = () => {
                           />
                         </Box>
                       </Box>
-                      <Button 
-                        variant="contained" 
-                        size="small"
-                        onClick={() => handleJoinSession(session.id)}
-                      >
-                        Join
-                      </Button>
-                    </Box>
-                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Hosted by {session.hostName}
-                      </Typography>
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Host: {session.hostName}
+                        </Typography>
+                        <Button 
+                          variant="contained" 
+                          size="small" 
+                          onClick={() => handleJoinSession(session.id)}
+                          sx={{ mt: 1 }}
+                        >
+                          Join
+                        </Button>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>

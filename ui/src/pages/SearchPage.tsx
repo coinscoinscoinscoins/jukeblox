@@ -5,41 +5,39 @@ import {
   Box, 
   TextField, 
   Button, 
-  Card, 
-  CardContent, 
   CardMedia, 
-  Grid, 
-  Select, 
-  MenuItem, 
-  InputLabel, 
-  FormControl,
+  Tooltip,
+  Divider,
   CircularProgress,
   Snackbar,
   Alert,
-  Divider
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
+import AddIcon from '@mui/icons-material/Add'
 import { useAuth } from '../contexts/AuthContext'
+import { useSession } from '../contexts/SessionContext'
 import { 
   SpotifySearchResponse,
-  SpotifyAlbum,
-  SpotifyArtist,
-  SpotifyPlaylist,
   SpotifyTrack
 } from '../types'
 
-type SearchType = 'track' | 'artist' | 'album' | 'playlist'
-
-type SearchItemType = SpotifyTrack | SpotifyArtist | SpotifyAlbum | SpotifyPlaylist;
-
 const SearchPage = () => {
   const { spotifyClient } = useAuth();
+  const { currentSession } = useSession();
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchType, setSearchType] = useState<SearchType>('track')
   const [searchResults, setSearchResults] = useState<SpotifySearchResponse | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<string | null>(null)
+  const [addedTrack, setAddedTrack] = useState<string | null>(null)
 
   // Check if client is properly initialized
   useEffect(() => {
@@ -67,7 +65,7 @@ const SearchPage = () => {
       setIsSearching(true)
       setError(null)
       
-      console.debug(`Starting search for "${searchQuery}" with type "${searchType}"`)
+      console.debug(`Starting search for "${searchQuery}" with type "track"`)
       
       // Check for valid token before searching
       try {
@@ -79,20 +77,20 @@ const SearchPage = () => {
         return
       }
       
-      // Proceed with search
+      // Proceed with search - only for tracks now
       const results = await spotifyClient.search.search({
         q: searchQuery,
-        type: searchType,
-        market: 'from_token', // Add market parameter to help with authorization
-        limit: 20
+        type: 'track',
+        market: 'from_token',
+        limit: 50
       })
       
       setSearchResults(results)
       
       // Show count of results
-      const count = results[`${searchType}s`]?.items?.length || 0
+      const count = results.tracks?.items?.length || 0
       if (count === 0) {
-        setDebugInfo(`No ${searchType}s found matching "${searchQuery}"`)
+        setDebugInfo(`No tracks found matching "${searchQuery}"`)
       } else {
         setDebugInfo(null)
       }
@@ -106,7 +104,7 @@ const SearchPage = () => {
         
         // Handle specific known errors
         if (errorMessage.includes('403')) {
-          errorMessage = `Access denied for ${searchType} searches. Try a different search type or login with your Spotify account instead of using client credentials.`
+          errorMessage = 'Access denied for track searches. Try logging in with your Spotify account instead of using client credentials.'
         } else if (errorMessage.includes('401')) {
           errorMessage = 'Authentication expired. Please log in again.'
         } else if (errorMessage.includes('429')) {
@@ -122,15 +120,33 @@ const SearchPage = () => {
   }
 
   // Helper to get the appropriate items array based on the search type
-  const getResultItems = () => {
-    if (!searchResults) return []
+  const getTrackResults = (): SpotifyTrack[] => {
+    if (!searchResults || !searchResults.tracks) return []
+    return searchResults.tracks.items || []
+  }
+
+  const handleAddToSession = (track: SpotifyTrack) => {
+    if (!currentSession) {
+      setError('You are not currently in a session. Join a session first to add tracks.')
+      return
+    }
     
-    const key = `${searchType}s` as keyof SpotifySearchResponse
-    return searchResults[key]?.items || []
+    // In a real app, you'd make an API call to add the track to the session
+    console.log('Adding track to session:', track.name, 'Session ID:', currentSession.id)
+    
+    // Show success message
+    setAddedTrack(track.name)
+    setTimeout(() => setAddedTrack(null), 3000)
+  }
+
+  const formatDuration = (ms: number): string => {
+    const minutes = Math.floor(ms / 60000)
+    const seconds = Math.floor((ms % 60000) / 1000)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
   const renderSearchResults = () => {
-    const items = getResultItems() as SearchItemType[]
+    const tracks = getTrackResults()
     
     if (isSearching) {
       return (
@@ -140,104 +156,82 @@ const SearchPage = () => {
       )
     }
     
-    if (items.length === 0 && searchResults) {
+    if (tracks.length === 0 && searchResults) {
       return (
         <Box sx={{ textAlign: 'center', py: 6 }}>
           <Typography variant="h6">No results found</Typography>
           <Typography variant="body2" color="text.secondary">
-            Try adjusting your search terms or search type
+            Try adjusting your search terms
           </Typography>
         </Box>
       )
     }
     
     return (
-      <Grid container spacing={2} sx={{ mt: 4 }}>
-        {items.map((item: SearchItemType) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
-            <Card 
-              sx={{ 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column',
-                bgcolor: 'background.paper',
-                transition: 'transform 0.2s',
-                width: '100%',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: 4
-                }
-              }}
-            >
-              <CardMedia
-                component="img"
-                sx={{ height: 160 }}
-                image={getImageUrl(item)}
-                alt={item.name}
-              />
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Typography variant="subtitle1" component="div" noWrap>
-                  {item.name}
-                </Typography>
-                
-                {searchType === 'track' && (
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {(item as SpotifyTrack).artists?.[0]?.name} {(item as SpotifyTrack).album?.name ? `• ${(item as SpotifyTrack).album.name}` : ''}
-                  </Typography>
-                )}
-                
-                {searchType === 'album' && (
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {(item as SpotifyAlbum).artists?.[0]?.name} {(item as SpotifyAlbum).release_date ? `• ${(item as SpotifyAlbum).release_date.split('-')[0]}` : ''}
-                  </Typography>
-                )}
-                
-                {searchType === 'artist' && (
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {formatFollowers((item as SpotifyArtist).followers?.total)}
-                  </Typography>
-                )}
-                
-                {searchType === 'playlist' && (
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {(item as SpotifyPlaylist).owner?.display_name} {(item as SpotifyPlaylist).tracks?.total ? `• ${(item as SpotifyPlaylist).tracks.total} tracks` : ''}
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      <TableContainer component={Paper} sx={{ mt: 4, bgcolor: 'background.paper' }}>
+        <Table sx={{ minWidth: 650 }} aria-label="search results">
+          <TableHead>
+            <TableRow>
+              <TableCell width={60}>#</TableCell>
+              <TableCell>Title</TableCell>
+              <TableCell>Album</TableCell>
+              <TableCell width={100} align="right">Duration</TableCell>
+              <TableCell width={80} align="center">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {tracks.map((track, index) => (
+              <TableRow 
+                key={track.id}
+                sx={{ 
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.08)' },
+                  transition: 'background-color 0.2s'
+                }}
+              >
+                <TableCell component="th" scope="row">
+                  {index + 1}
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CardMedia
+                      component="img"
+                      sx={{ width: 40, height: 40, mr: 2, borderRadius: 1 }}
+                      image={track.album.images[0]?.url || 'https://placehold.co/40x40?text=No+Image'}
+                      alt={track.name}
+                    />
+                    <Box>
+                      <Typography variant="body1">{track.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {track.artists.map(artist => artist.name).join(', ')}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  {track.album.name}
+                </TableCell>
+                <TableCell align="right">
+                  {formatDuration(track.duration_ms)}
+                </TableCell>
+                <TableCell align="center">
+                  {currentSession && (
+                    <Tooltip title="Add to current session queue">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleAddToSession(track)}
+                      >
+                        <AddIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     )
-  }
-
-  // Helper to extract image URL from result item
-  const getImageUrl = (item: SearchItemType): string => {
-    if ('images' in item && item.images && item.images.length > 0) {
-      return item.images[0].url
-    }
-    
-    if ('album' in item && item.album?.images && item.album.images.length > 0) {
-      return item.album.images[0].url
-    }
-    
-    // Default image if none available
-    return 'https://placehold.co/400x400?text=No+Image'
-  }
-
-  // Format followers count (e.g., 1.2M, 5.3K)
-  const formatFollowers = (count?: number): string => {
-    if (!count) return '0 followers'
-    
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M followers`
-    }
-    
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K followers`
-    }
-    
-    return `${count} followers`
   }
 
   return (
@@ -247,6 +241,12 @@ const SearchPage = () => {
       </Typography>
       
       <Divider sx={{ mb: 4 }} />
+      
+      {currentSession && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Currently in session: <strong>{currentSession.name}</strong> — Search for tracks to add to this session.
+        </Alert>
+      )}
       
       {debugInfo && (
         <Alert severity="warning" sx={{ mb: 3 }}>
@@ -268,7 +268,7 @@ const SearchPage = () => {
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Search for music..."
+          placeholder="Search for tracks..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
@@ -281,22 +281,6 @@ const SearchPage = () => {
           }}
           sx={{ flex: 1 }}
         />
-        
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel id="search-type-label">Type</InputLabel>
-          <Select
-            labelId="search-type-label"
-            value={searchType}
-            label="Type"
-            onChange={(e) => setSearchType(e.target.value as SearchType)}
-            sx={{ bgcolor: 'background.paper' }}
-          >
-            <MenuItem value="track">Tracks</MenuItem>
-            <MenuItem value="artist">Artists</MenuItem>
-            <MenuItem value="album">Albums</MenuItem>
-            <MenuItem value="playlist">Playlists</MenuItem>
-          </Select>
-        </FormControl>
         
         <Button 
           type="submit" 
@@ -319,6 +303,16 @@ const SearchPage = () => {
       >
         <Alert onClose={() => setError(null)} severity="error" variant="filled">
           {error}
+        </Alert>
+      </Snackbar>
+      
+      <Snackbar 
+        open={!!addedTrack}
+        autoHideDuration={3000}
+        onClose={() => setAddedTrack(null)}
+      >
+        <Alert severity="success" variant="filled">
+          Added "{addedTrack}" to session queue
         </Alert>
       </Snackbar>
     </Container>
