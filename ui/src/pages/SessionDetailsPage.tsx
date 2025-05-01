@@ -19,12 +19,14 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSession } from '../contexts/SessionContext';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import PeopleIcon from '@mui/icons-material/People';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import ShareIcon from '@mui/icons-material/Share';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 // Mock data interfaces
 interface SessionParticipant {
@@ -58,14 +60,24 @@ interface SessionData {
 
 const SessionDetailsPage = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
-  const { isAuthenticated, spotifyClient } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { currentSession, joinSession, leaveSession } = useSession();
   const navigate = useNavigate();
   
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasJoined, setHasJoined] = useState(false);
   
   useEffect(() => {
+    // Check if already joined this session
+    if (currentSession && currentSession.id === sessionId) {
+      setSession(currentSession);
+      setHasJoined(true);
+      setLoading(false);
+      return;
+    }
+    
     // Fetch session data
     const fetchSessionData = async () => {
       try {
@@ -154,7 +166,7 @@ const SessionDetailsPage = () => {
       setError('No session ID provided');
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [sessionId, currentSession]);
 
   const handlePlayPause = () => {
     if (!session) return;
@@ -182,6 +194,19 @@ const SessionDetailsPage = () => {
     navigator.clipboard.writeText(window.location.href);
     // Implement share functionality here
     alert('Session link copied to clipboard!');
+  };
+  
+  const handleJoinSession = () => {
+    if (!session) return;
+    
+    // In a real app, you would send a request to join the session before updating UI
+    joinSession(session);
+    setHasJoined(true);
+  };
+  
+  const handleLeaveSession = () => {
+    leaveSession();
+    setHasJoined(false);
   };
   
   if (loading) {
@@ -233,13 +258,36 @@ const SessionDetailsPage = () => {
             </Box>
           </Box>
           
-          <Button 
-            variant="outlined" 
-            startIcon={<ShareIcon />}
-            onClick={handleShareSession}
-          >
-            Share
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {!hasJoined && isAuthenticated && (
+              <Button 
+                variant="contained" 
+                color="primary"
+                startIcon={<PersonAddIcon />}
+                onClick={handleJoinSession}
+              >
+                Join Session
+              </Button>
+            )}
+            
+            {hasJoined && (
+              <Button 
+                variant="outlined" 
+                color="primary"
+                onClick={handleLeaveSession}
+              >
+                Leave Session
+              </Button>
+            )}
+            
+            <Button 
+              variant="outlined" 
+              startIcon={<ShareIcon />}
+              onClick={handleShareSession}
+            >
+              Share
+            </Button>
+          </Box>
         </Box>
         
         <Divider sx={{ mb: 4 }} />
