@@ -1,0 +1,187 @@
+/* Base styles */
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+body {
+  margin: 0;
+  background-color: #121212;
+  color: white;
+  font-family: 'Circular', 'Helvetica', 'Arial', sans-serif;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+/* Spotify Auth Component */
+.spotify-auth h2 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.auth-buttons button {
+  padding: 12px 24px;
+  font-size: 1rem;
+  border-radius: 500px;
+  font-weight: bold;
+  min-width: 180px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.login-button {
+  background-color: #1DB954;
+  color: white;
+}
+
+.login-button:hover {
+  background-color: #1ed760;
+  transform: scale(1.04);
+}
+
+.client-auth-button {
+  background-color: transparent;
+  color: white;
+  border: 1px solid white !important;
+}
+
+.client-auth-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.auth-buttons button:disabled {
+  background-color: #535353;
+  color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.auth-success {
+  background-color: rgba(29, 185, 84, 0.1);
+  border: 1px solid #1DB954;
+  padding: 1rem;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Error Styles */
+.error {
+  background-color: rgba(235, 0, 27, 0.1);
+  border: 1px solid #eb001b;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+/* Old styles kept for compatibility */
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 2em rgba(100, 108, 255, 0.667));
+}
+
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em rgba(97, 218, 251, 0.667));
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Environment Debug Panel - Kept but hidden by default */
+.env-debug {
+  display: none;
+  background-color: #282828;
+  border: 1px solid #333;
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-family: monospace;
+}
+
+/* Manual Entry Form - Styled but hidden by default */
+.manual-entry {
+  display: none;
+  background-color: #282828;
+  border: 1px solid #333;
+  padding: 20px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.manual-entry h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #333;
+  background-color: #121212;
+  color: white;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.manual-entry button {
+  background-color: #1DB954;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
