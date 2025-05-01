@@ -22,6 +22,8 @@ contract Jukeblox {
         uint48 start;
         uint48 end;
         SongRequest[] songRequests;
+        string name;
+        uint256 cost;
     }
 
     // Storage variables persist on contract and can be accessed anytime
@@ -40,7 +42,7 @@ contract Jukeblox {
      * Events or "logs" can be emitted to enable easier offchain parsing of state changes
      * Events can have named arguments
      */
-    event SessionCreated(uint256 sessionId, uint48 start, uint48 end);
+    event SessionCreated(uint256 sessionId, uint48 start, uint48 end, string name, uint256 cost);
     event AddSongRequest(uint256 sessionId, string songId, address requester);
     event RemoveSongRequest(uint256 sessionId, string songId, address requester);
 
@@ -51,7 +53,7 @@ contract Jukeblox {
     error InvalidStartEnd(uint48 start, uint48 end);
     error SessionDoesNotExist(uint256 sessionId, uint256 totalSessions);
     error SessionNotActive(uint256 sessionId);
-
+    error InsufficientFunds(uint256 provided, uint256 required);
     // Constructors are run only when deploying a contract
     constructor(address owner_) {
         owner = owner_;
@@ -86,7 +88,7 @@ contract Jukeblox {
     }
 
     /// @notice Create a new session.
-    function createSession(uint48 start, uint48 end) external returns (uint256 sessionId) {
+    function createSession(uint48 start, uint48 end, string memory name, uint256 cost) external returns (uint256 sessionId) {
         // Check session start is before end
         if (start >= end) revert InvalidStartEnd(start, end);
 
@@ -94,13 +96,14 @@ contract Jukeblox {
         sessionId = sessions.length;
 
         // Set both mapping value and increment sessions.length in storage
-        sessions.push(Session({start: start, end: end, songRequests: new SongRequest[](0)}));
+        sessions.push(Session({start: start, end: end, songRequests: new SongRequest[](0), name: name, cost: cost}));
 
         // Emit log for offchain indexing
-        emit SessionCreated(sessionId, start, end);
+        emit SessionCreated(sessionId, start, end, name, cost);
     }
 
-    function addSongRequest(uint256 sessionId, string memory songId) external {
+    function addSongRequest(uint256 sessionId, string memory songId) external payable {
+        if (msg.value < sessions[sessionId].cost) revert InsufficientFunds(msg.value, sessions[sessionId].cost);
         sessions[sessionId].songRequests.push(SongRequest({songId: songId, requester: msg.sender}));
         emit AddSongRequest(sessionId, songId, msg.sender);
     }
