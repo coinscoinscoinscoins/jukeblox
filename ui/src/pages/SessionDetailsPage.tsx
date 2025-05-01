@@ -30,6 +30,42 @@ import PeopleIcon from '@mui/icons-material/People';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import ShareIcon from '@mui/icons-material/Share';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import BugReportIcon from '@mui/icons-material/BugReport';
+
+// Add debug component to show when enabled
+const DebugInfo = ({ data, title }: { data: Record<string, unknown> | null | undefined; title: string }) => {
+  const [show, setShow] = useState(false);
+  
+  return (
+    <Box sx={{ mt: 2, p: 2, border: '1px dashed gray', borderRadius: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="subtitle2">{title}</Typography>
+        <Button 
+          size="small" 
+          startIcon={<BugReportIcon />}
+          onClick={() => setShow(!show)}
+        >
+          {show ? 'Hide Debug' : 'Show Debug'}
+        </Button>
+      </Box>
+      {show && (
+        <Box 
+          component="pre" 
+          sx={{ 
+            p: 2, 
+            bgcolor: 'black', 
+            color: 'lime', 
+            overflow: 'auto', 
+            fontSize: '12px',
+            maxHeight: '300px' 
+          }}
+        >
+          {JSON.stringify(data, null, 2)}
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 // Mock data interfaces
 interface SessionParticipant {
@@ -48,6 +84,7 @@ interface SessionTrack {
   albumArt?: string;
   addedBy: string;
   isValid: boolean;
+  songId: string;
 }
 
 interface SessionData {
@@ -60,6 +97,14 @@ interface SessionData {
   currentTrack?: SessionTrack;
   queue: SessionTrack[];
   isPlaying: boolean;
+}
+
+// Import type for song requests if it exists, otherwise create one
+interface SongRequest {
+  songId: string;
+  requester: string;
+  timestamp?: string | number; // Make timestamp optional
+  [key: string]: any; // For other properties we might not know about
 }
 
 const SessionDetailsPage = () => {
@@ -82,6 +127,41 @@ const SessionDetailsPage = () => {
     args: sessionId ? [BigInt(sessionId.replace('session-', ''))] : undefined,
   });
 
+  // Add debugging to examine contract data
+  useEffect(() => {
+    if (songRequests) {
+      try {
+        console.log("====== CONTRACT DATA INSPECTION ======");
+        // Deep inspection of the songRequests data
+        console.log("Type of songRequests:", typeof songRequests);
+        console.log("Is Array?", Array.isArray(songRequests));
+        console.log("Length:", songRequests.length);
+        
+        // Check if the data is actually limited/sliced somewhere
+        console.log("Keys of songRequests object:", Object.keys(songRequests));
+        
+        // Stringifying can reveal hidden properties or structures
+        const stringifiedData = JSON.stringify(songRequests);
+        console.log("Stringified length:", stringifiedData.length);
+        if (stringifiedData.length < 1000) {
+          console.log("Full stringified data:", stringifiedData);
+        } else {
+          console.log("Partial stringified data:", stringifiedData.substring(0, 1000) + "...");
+        }
+        
+        // Try to see if the contract is returning a limited number of results
+        console.log("First few items:", songRequests.slice(0, 3));
+        if (songRequests.length > 3) {
+          console.log("Items 3-5:", songRequests.slice(3, 6));
+        }
+        
+        console.log("====== END CONTRACT DATA INSPECTION ======");
+      } catch (error) {
+        console.error("Error inspecting contract data:", error);
+      }
+    }
+  }, [songRequests]);
+
   // Add contract read hook for session details
   const { data: sessionDetails } = useReadContract({
     abi: JukebloxAbi,
@@ -101,18 +181,38 @@ const SessionDetailsPage = () => {
         
         const newTrackDetails: Record<string, SpotifyTrack> = {};
         
-        for (const request of songRequests) {
-          if (trackDetails[request.songId]) continue; // Skip if we already have details
+        console.log("Fetching details for song requests:", songRequests);
+        
+        // Check for duplicated song IDs in the requests
+        const songIds = songRequests.map(req => req.songId);
+        const uniqueSongIds = [...new Set(songIds)];
+        console.log("Total song IDs in requests:", songIds.length);
+        console.log("Unique song IDs in requests:", uniqueSongIds.length);
+        console.log("Song ID counts:", songIds.reduce((acc, id) => {
+          acc[id] = (acc[id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>));
+        
+        // IMPORTANT: We only need to fetch details for unique songIds
+        // But we need to make sure all ids are fetched
+        for (const songId of uniqueSongIds) {
+          // Only fetch if we don't already have the details
+          if (trackDetails[songId]) {
+            console.log(`Using cached details for track: ${songId}`);
+            continue;
+          }
           
           try {
             // Check if the songId is a valid Spotify track ID format
-            if (!/^[a-zA-Z0-9]{22}$/.test(request.songId)) {
-              console.warn(`Invalid Spotify track ID format: ${request.songId}`);
+            if (!/^[a-zA-Z0-9]{22}$/.test(songId)) {
+              console.warn(`Invalid Spotify track ID format: ${songId}`);
               continue;
             }
 
+            console.log(`Fetching details for track ID: ${songId}`);
+            
             // Use the tracks endpoint with client credentials
-            const response = await fetch(`https://api.spotify.com/v1/tracks/${request.songId}`, {
+            const response = await fetch(`https://api.spotify.com/v1/tracks/${songId}`, {
               headers: {
                 'Authorization': `Bearer ${await spotifyClient.auth.getValidToken()}`
               }
@@ -120,21 +220,27 @@ const SessionDetailsPage = () => {
 
             if (!response.ok) {
               if (response.status === 404) {
-                console.warn(`No Spotify track found for ID: ${request.songId}`);
+                console.warn(`No Spotify track found for ID: ${songId}`);
               } else {
-                console.error(`Failed to fetch track ${request.songId}: ${response.statusText}`);
+                console.error(`Failed to fetch track ${songId}: ${response.statusText}`);
               }
               continue;
             }
 
             const track = await response.json();
-            newTrackDetails[request.songId] = track;
+            newTrackDetails[songId] = track;
+            console.log(`Successfully fetched details for track: ${track.name}`);
           } catch (err) {
-            console.error(`Failed to fetch details for track ${request.songId}:`, err);
+            console.error(`Failed to fetch details for track ${songId}:`, err);
           }
         }
         
-        setTrackDetails(prev => ({ ...prev, ...newTrackDetails }));
+        console.log("New track details to add:", Object.keys(newTrackDetails).length);
+        setTrackDetails(prev => {
+          const updated = { ...prev, ...newTrackDetails };
+          console.log("Updated trackDetails state:", Object.keys(updated).length, "tracks");
+          return updated;
+        });
       } catch (err) {
         console.error('Error fetching track details:', err);
       }
@@ -157,23 +263,59 @@ const SessionDetailsPage = () => {
       try {
         setLoading(true);
         
+        // Check if songRequests is defined and valid
+        if (!songRequests) {
+          console.log("No song requests available");
+          return;
+        }
+        
+        console.log("Starting to process songRequests:", songRequests.length, "items");
+        
+        // Log the raw requests before we start processing them
+        console.log("Original song requests array:", JSON.stringify(songRequests));
+        
+        // THIS is where the deduplication might be happening
+        // Let's check if we're filtering out song requests with the same ID
+        const songIdSet = new Set();
+        songRequests.forEach(request => {
+          if (songIdSet.has(request.songId)) {
+            console.log(`DUPLICATE FOUND: ${request.songId} - This might be filtered out later`);
+          }
+          songIdSet.add(request.songId);
+        });
+        
         // Convert song requests to our track format
+        // IMPORTANT: DO NOT DEDUPE - process each request separately even if IDs are the same
         const tracks = songRequests?.map((request, index) => {
+          console.log(`Processing request ${index}:`, request);
           const spotifyTrack = trackDetails[request.songId];
           const isValidSpotifyId = /^[a-zA-Z0-9]{22}$/.test(request.songId);
           
-          return {
-            id: `track-${index}`,
+          // Create unique IDs for each track, even if they have the same song ID
+          const track = {
+            id: `track-${index}`, // This ensures a unique ID for each track
+            // Use the song data we've already fetched from Spotify
             name: spotifyTrack?.name || (isValidSpotifyId ? 'Loading...' : 'Invalid Track ID'),
             artist: spotifyTrack?.artists?.[0]?.name || (isValidSpotifyId ? 'Loading...' : 'Unknown Artist'),
             album: spotifyTrack?.album?.name || (isValidSpotifyId ? 'Loading...' : 'Unknown Album'),
             duration: spotifyTrack?.duration_ms || 0,
             albumArt: spotifyTrack?.album?.images?.[0]?.url || 'https://placehold.co/400x400?text=Invalid+Track',
             addedBy: request.requester,
-            isValid: isValidSpotifyId
+            isValid: isValidSpotifyId,
+            // Add the original song ID so we can reference it later if needed
+            songId: request.songId
           };
+          
+          console.log(`Created track ${index}:`, track);
+          return track;
         }) || [];
 
+        console.log("tracks", tracks);
+        console.log("IMPORTANT: Created tracks count:", tracks.length);
+        console.log("currentTrack assigned:", tracks[0]);
+        console.log("queue assigned:", tracks.slice(1));
+        console.log("queue length being set:", tracks.slice(1).length);
+        
         // Create session data from contract data
         const sessionData: SessionData = {
           id: sessionId || '',
@@ -187,9 +329,14 @@ const SessionDetailsPage = () => {
           },
           participants: [], // We don't have this data from contract
           currentTrack: tracks[0],
+          // Use all tracks except the first one for the queue
           queue: tracks.slice(1),
           isPlaying: false
         };
+        
+        console.log("Session data being set:", sessionData);
+        console.log("Queue in session data:", sessionData.queue);
+        console.log("Queue length in session data:", sessionData.queue.length);
         
         setSession(sessionData);
       } catch (err) {
@@ -212,12 +359,33 @@ const SessionDetailsPage = () => {
       isPlaying: !session.isPlaying
     });
   };
+
+  useEffect(() => {
+    console.log("session HERE", session)
+  }, [session])
+
+  // Add improved debugging in queue rendering effect
+  useEffect(() => {
+    if (session) {
+      console.log("QUEUE RENDERING DEBUG:");
+      console.log("- Queue length:", session?.queue?.length || 0);
+      console.log("- Queue contents:", JSON.stringify(session?.queue));
+      console.log("- Full session data:", JSON.stringify(session));
+      
+      session?.queue?.forEach((track, index) => {
+        console.log(`- Track at index ${index}:`, track);
+      });
+    }
+  }, [session?.queue]);
   
   const handleSkipTrack = () => {
     if (!session || session.queue.length === 0) return;
     
     const newQueue = [...session.queue];
     const nextTrack = newQueue.shift();
+    
+    console.log("Skipping to next track:", nextTrack);
+    console.log("New queue length:", newQueue.length);
     
     setSession({
       ...session,
@@ -246,22 +414,32 @@ const SessionDetailsPage = () => {
     setHasJoined(false);
   };
   
-  // Update the track rendering to show invalid state
-  const renderTrackInfo = (track: SessionTrack) => {
-    if (!track.isValid) {
+  // Add a helper function to render song request items
+  const renderSongRequestItem = (request: SongRequest) => {
+    const spotifyTrack = trackDetails[request.songId];
+    const isValidSpotifyId = /^[a-zA-Z0-9]{22}$/.test(request.songId);
+    
+    // If we have Spotify data, show it, otherwise show fallback
+    const trackName = spotifyTrack?.name || (isValidSpotifyId ? 'Loading...' : 'Invalid Track ID');
+    const artistName = spotifyTrack?.artists?.[0]?.name || (isValidSpotifyId ? 'Loading...' : 'Unknown Artist');
+    const albumName = spotifyTrack?.album?.name || (isValidSpotifyId ? 'Loading...' : 'Unknown Album');
+    const albumArt = spotifyTrack?.album?.images?.[0]?.url || 'https://placehold.co/400x400?text=Invalid+Track';
+    
+    // Display for invalid tracks
+    if (!isValidSpotifyId) {
       return (
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Avatar 
             variant="rounded"
-            src={track.albumArt}
-            alt={track.album}
+            src={albumArt}
+            alt={albumName}
             sx={{ bgcolor: 'error.main' }}
           >
             <MusicNoteIcon />
           </Avatar>
           <Box sx={{ ml: 2 }}>
             <Typography variant="body1" color="error">
-              {track.name}
+              {trackName}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Invalid Spotify Track ID
@@ -270,20 +448,21 @@ const SessionDetailsPage = () => {
         </Box>
       );
     }
-
+    
+    // Display for valid tracks
     return (
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Avatar 
           variant="rounded"
-          src={track.albumArt}
-          alt={track.album}
+          src={albumArt}
+          alt={albumName}
         >
           <MusicNoteIcon />
         </Avatar>
         <Box sx={{ ml: 2 }}>
-          <Typography variant="body1">{track.name}</Typography>
+          <Typography variant="body1">{trackName}</Typography>
           <Typography variant="body2" color="text.secondary">
-            {track.artist} • {track.album}
+            {artistName} • {albumName}
           </Typography>
         </Box>
       </Box>
@@ -433,12 +612,20 @@ const SessionDetailsPage = () => {
                   </Button>
                 </Box>
               )}
+              
+              {/* Add debug component for current track */}
+              <DebugInfo 
+                data={session.currentTrack as unknown as Record<string, unknown>} 
+                title="Current Track Debug Info" 
+              />
             </Paper>
             
             {/* Queue Section */}
             <Paper sx={{ p: 3, mt: 3, bgcolor: 'background.paper' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Up Next</Typography>
+                <Typography variant="h6">
+                  Up Next ({songRequests ? songRequests.length - 1 : 0} tracks)
+                </Typography>
                 <Button 
                   variant="text" 
                   color="primary"
@@ -448,13 +635,17 @@ const SessionDetailsPage = () => {
                 </Button>
               </Box>
               
-              {session.queue.length > 0 ? (
+              {songRequests && songRequests.length > 1 ? (
                 <List>
-                  {session.queue.map((track, index) => (
-                    <ListItem key={track.id} divider={index < session.queue.length - 1}>
-                      {renderTrackInfo(track)}
+                  {/* Skip the first song request (now playing) and render the rest */}
+                  {songRequests.slice(1).map((request, index) => (
+                    <ListItem 
+                      key={`request-${index}`} 
+                      divider={index < songRequests.length - 2}
+                    >
+                      {renderSongRequestItem(request)}
                       <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
-                        Added by Anonymous
+                        Added by {request.requester.substring(0, 6)}...
                       </Typography>
                     </ListItem>
                   ))}
@@ -464,6 +655,22 @@ const SessionDetailsPage = () => {
                   <Typography color="text.secondary">The queue is empty</Typography>
                 </Box>
               )}
+              
+              {/* Debug info remains the same */}
+              <DebugInfo 
+                data={{
+                  queueLength: songRequests ? songRequests.length - 1 : 0,
+                  rawSongRequests: songRequests ? {
+                    length: songRequests.length,
+                    items: songRequests
+                  } : null,
+                  trackDetails: {
+                    count: Object.keys(trackDetails).length,
+                    keys: Object.keys(trackDetails)
+                  }
+                }} 
+                title="Queue Debug Info" 
+              />
             </Paper>
           </Grid>
         </Grid>
