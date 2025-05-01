@@ -14,7 +14,7 @@ contract Deploy is Script {
         // address owner = msg.sender;
         // address owner = 0x0BFc799dF7e440b7C88cC2454f12C58f8a29D986; // EOA
         // address owner = 0x2B654aB28f82a2a4E4F6DB8e20791E5AcF4125c6; // webapp wallet
-        address owner = 0x7b1C40df357ed4078a324Ca06Fb5Fb28F55D7295;
+        address owner = 0xB23ae9E97e757E508983cf225621A4e6B1D4a6E0;
         new Jukeblox(owner);
 
         vm.stopBroadcast();

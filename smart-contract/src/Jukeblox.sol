@@ -115,4 +115,8 @@ contract Jukeblox {
             }
         }
     }
+
+    function getSongRequests(uint256 sessionId) external view returns (SongRequest[] memory) {
+        return sessions[sessionId].songRequests;
+    }
 }
