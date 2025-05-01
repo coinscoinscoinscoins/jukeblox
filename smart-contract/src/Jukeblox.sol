@@ -107,7 +107,7 @@ contract Jukeblox {
 
     function removeSongRequest(uint256 sessionId, string memory songId) external {
         for (uint256 i = 0; i < sessions[sessionId].songRequests.length; i++) {
-            if (sessions[sessionId].songRequests[i].songId === songId) {
+            if (keccak256(bytes(sessions[sessionId].songRequests[i].songId)) == keccak256(bytes(songId))) {
                 sessions[sessionId].songRequests[i] = sessions[sessionId].songRequests[sessions[sessionId].songRequests.length - 1];
                 sessions[sessionId].songRequests.pop();
                 emit RemoveSongRequest(sessionId, songId, msg.sender);
