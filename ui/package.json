@@ -10,13 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@coinbase/onchainkit": "latest",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
+    "@tanstack/react-query": "^5.28.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.5.3"
+    "react-router-dom": "^7.5.3",
+    "viem": "^2.17.4",
+    "wagmi": "^2.11.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

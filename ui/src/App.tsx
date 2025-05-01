@@ -8,6 +8,7 @@ import { AuthProvider, ProtectedRoute, useAuth } from './contexts/AuthContext'
 import SessionsListPage from './pages/SessionsListPage'
 import SessionDetailsPage from './pages/SessionDetailsPage'
 import CreateSessionPage from './pages/CreateSessionPage'
+import WalletProvider from './components/WalletProvider'
 
 // Spotify inspired theme
 const theme = createTheme({
@@ -124,6 +125,52 @@ function App() {
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
+    <WalletProvider>
+      <ThemeProvider theme={theme}>
+        <BrowserRouter>
+          <div className="app">
+            <Navbar isAuthenticated={isAuthenticated} />
+            
+            <main>
+              <Routes>
+                <Route 
+                  path="/" 
+                  element={
+                    isAuthenticated 
+                      ? <Navigate to="/search" replace /> 
+                      : <HomePage 
+                          clientId={clientId} 
+                          clientSecret={clientSecret} 
+                          redirectUri={redirectUri} 
+                          onAuthenticated={handleAuthenticated} 
+                        />
+                  } 
+                />
+                <Route 
+                  path="/callback" 
+                  element={
+                    <HomePage 
+                      clientId={clientId} 
+                      clientSecret={clientSecret} 
+                      redirectUri={redirectUri} 
+                      onAuthenticated={handleAuthenticated} 
+                    />
+                  } 
+                />
+                <Route 
+                  path="/search" 
+                  element={
+                    isAuthenticated 
+                      ? <SearchPage spotifyClient={spotifyClient} />
+                      : <Navigate to="/" replace />
+                  } 
+                />
+              </Routes>
+            </main>
+          </div>
+        </BrowserRouter>
+      </ThemeProvider>
+    </WalletProvider>
   )
 }
 
