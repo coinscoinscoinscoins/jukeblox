@@ -1,21 +1,16 @@
 import { useState } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
+import {
+  Container,
+  Typography,
+  Box,
   TextField,
-  Button, 
+  Button,
   Paper,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  FormHelperText,
-  Snackbar,
-  Alert,
-  Grid
+  InputAdornment,
+  Switch,
+  FormControlLabel,
+  Slider,
+  Stack
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,11 +21,12 @@ const CreateSessionPage = () => {
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [isPublic, setIsPublic] = useState<boolean>(true);
-  const [maxParticipants, setMaxParticipants] = useState<number>(10);
+  const [isPublic, setIsPublic] = useState(true);
+  const [maxParticipants, setMaxParticipants] = useState(10);
+  const [cost, setCost] = useState('0.0001');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -53,7 +49,8 @@ const CreateSessionPage = () => {
         name,
         description,
         isPublic,
-        maxParticipants
+        maxParticipants,
+        cost,
       });
       
       // Simulate API call
@@ -73,102 +70,151 @@ const CreateSessionPage = () => {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ py: 5 }}>
-        <Typography variant="h4" component="h1" sx={{ mb: 3, fontWeight: 'bold' }}>
+      <Box sx={{ 
+        py: 6,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4
+      }}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            fontWeight: 700,
+            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+            backgroundClip: 'text',
+            color: 'transparent'
+          }}
+        >
           Create a New Session
         </Typography>
-        
-        <Divider sx={{ mb: 4 }} />
-        
-        <Paper sx={{ p: 4, bgcolor: 'background.paper' }}>
-          <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  label="Session Name"
-                  fullWidth
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  variant="outlined"
+
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 4,
+            bgcolor: 'background.paper',
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider'
+          }}
+        >
+          <Stack spacing={4}>
+            <TextField
+              label="Session Name"
+              fullWidth
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              variant="outlined"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+            />
+
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              variant="outlined"
+              placeholder="What's this session about?"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2
+                }
+              }}
+            />
+
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                Cost per Song Request
+              </Typography>
+              <TextField
+                fullWidth
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                variant="outlined"
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">WEI</InputAdornment>,
+                  inputProps: { min: 0, step: "0.0001" }
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2
+                  }
+                }}
+              />
+            </Box>
+
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                Max Participants: {maxParticipants}
+              </Typography>
+              <Slider
+                value={maxParticipants}
+                onChange={(_, value) => setMaxParticipants(value as number)}
+                min={5}
+                max={100}
+                step={5}
+                marks={[
+                  { value: 5, label: '5' },
+                  { value: 50, label: '50' },
+                  { value: 100, label: '100' }
+                ]}
+                sx={{
+                  color: 'primary.main'
+                }}
+              />
+            </Box>
+
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isPublic}
+                  onChange={(e) => setIsPublic(e.target.checked)}
+                  color="primary"
                 />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  label="Description"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  variant="outlined"
-                  placeholder="What's this session about?"
-                />
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="visibility-label">Visibility</InputLabel>
-                  <Select
-                    labelId="visibility-label"
-                    value={isPublic ? 'public' : 'private'}
-                    label="Visibility"
-                    onChange={(e: SelectChangeEvent) => setIsPublic(e.target.value === 'public')}
-                  >
-                    <MenuItem value="public">Public</MenuItem>
-                    <MenuItem value="private">Private</MenuItem>
-                  </Select>
-                  <FormHelperText>
+              }
+              label={
+                <Box>
+                  <Typography variant="subtitle1">
+                    {isPublic ? 'Public Session' : 'Private Session'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
                     {isPublic 
                       ? 'Anyone can find and join this session' 
                       : 'Only people with the link can join'}
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="max-participants-label">Max Participants</InputLabel>
-                  <Select
-                    labelId="max-participants-label"
-                    value={maxParticipants.toString()}
-                    label="Max Participants"
-                    onChange={(e: SelectChangeEvent) => setMaxParticipants(Number(e.target.value))}
-                  >
-                    {[5, 10, 15, 20, 25, 30, 50, 100].map((num) => (
-                      <MenuItem key={num} value={num}>{num}</MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText>
-                    Maximum number of people who can join
-                  </FormHelperText>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button 
-                    variant="contained" 
-                    color="primary" 
-                    size="large" 
-                    type="submit"
-                    disabled={creating || !name.trim()}
-                    sx={{ px: 4 }}
-                  >
-                    {creating ? 'Creating...' : 'Create Session'}
-                  </Button>
+                  </Typography>
                 </Box>
-              </Grid>
-            </Grid>
-          </Box>
+              }
+            />
+
+            <Button
+              variant="contained"
+              size="large"
+              fullWidth
+              onClick={handleSubmit}
+              disabled={creating || !name.trim()}
+              sx={{
+                py: 2,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                '&:hover': {
+                  background: 'linear-gradient(45deg, #1976D2 30%, #1CB5E0 90%)'
+                }
+              }}
+            >
+              {creating ? 'Creating Session...' : 'Create Session'}
+            </Button>
+          </Stack>
         </Paper>
-        
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-          <Alert onClose={() => setError(null)} severity="error" variant="filled">
-            {error}
-          </Alert>
-        </Snackbar>
       </Box>
     </Container>
   );
