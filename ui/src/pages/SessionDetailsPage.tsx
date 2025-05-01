@@ -96,6 +96,9 @@ const SessionDetailsPage = () => {
       if (!spotifyClient || !songRequests) return;
 
       try {
+        // Ensure we have a valid client credentials token
+        await spotifyClient.auth.getClientCredentialsToken();
+        
         const newTrackDetails: Record<string, SpotifyTrack> = {};
         
         for (const request of songRequests) {
@@ -108,17 +111,24 @@ const SessionDetailsPage = () => {
               continue;
             }
 
-            const results = await spotifyClient.search.search({
-              q: `track:${request.songId}`,
-              type: 'track',
-              limit: 1
+            // Use the tracks endpoint with client credentials
+            const response = await fetch(`https://api.spotify.com/v1/tracks/${request.songId}`, {
+              headers: {
+                'Authorization': `Bearer ${await spotifyClient.auth.getValidToken()}`
+              }
             });
-            
-            if (results.tracks?.items?.[0]) {
-              newTrackDetails[request.songId] = results.tracks.items[0];
-            } else {
-              console.warn(`No Spotify track found for ID: ${request.songId}`);
+
+            if (!response.ok) {
+              if (response.status === 404) {
+                console.warn(`No Spotify track found for ID: ${request.songId}`);
+              } else {
+                console.error(`Failed to fetch track ${request.songId}: ${response.statusText}`);
+              }
+              continue;
             }
+
+            const track = await response.json();
+            newTrackDetails[request.songId] = track;
           } catch (err) {
             console.error(`Failed to fetch details for track ${request.songId}:`, err);
           }
