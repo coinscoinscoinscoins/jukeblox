@@ -19,8 +19,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SearchIcon from '@mui/icons-material/Search';
 import PeopleIcon from '@mui/icons-material/People';
-import LockIcon from '@mui/icons-material/Lock';
-import PublicIcon from '@mui/icons-material/Public';
 import SortIcon from '@mui/icons-material/Sort';
 import AddIcon from '@mui/icons-material/Add';
 import { useReadContract, useInfiniteReadContracts } from 'wagmi';
@@ -28,7 +26,7 @@ import { jukebloxContract, JukebloxAbi } from '../lib/JukebloxContract';
 
 // Mock data types
 interface SessionListItem {
-  id: string;
+  id: number;
   name: string;
   description: string;
   isPublic: boolean;
@@ -137,7 +135,7 @@ const SessionsListPage = () => {
         const endDate = new Date(Number(session[1]) * 1000);
         
         return {
-          id: `session-${index}`,
+          id: index,
           name: session[2],
           description: `Active from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`,
           isPublic: true,

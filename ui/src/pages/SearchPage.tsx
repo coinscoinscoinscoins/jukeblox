@@ -161,8 +161,10 @@ const SearchPage = () => {
       // Save the track being processed
       setProcessingTrack(track.name)
       
-      // Hardcode the sessionId to 10
+      // Use the current session ID
+      // const sessionId = parseInt(currentSession.id)
       const sessionId = 10
+      console.log("sessionId", sessionId, typeof sessionId)
       
       // Call the contract's addSongRequest function
       writeContract({
