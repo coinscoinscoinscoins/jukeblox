@@ -1,17 +1,12 @@
-import { Container, Typography, Box, Button, Grid } from '@mui/material'
+import { Container, Typography, Box, Button, Stack } from '@mui/material'
 import { SpotifyAuth } from '../components/SpotifyAuth'
 import { useAuth } from '../contexts/AuthContext'
 import { Link } from 'react-router-dom'
 import SearchIcon from '@mui/icons-material/Search'
 import GroupIcon from '@mui/icons-material/Group'
-import AddCircleIcon from '@mui/icons-material/AddCircle'
+import AddCircleIcon from '@mui/icons-material/Add'
 import { ConnectWallet, Wallet } from '@coinbase/onchainkit/wallet'
 import { useAccount } from 'wagmi'
-import CreateSessionForm from '../components/CreateSessionForm'
-
-
-
-
 
 const HomePage = () => {
   const account = useAccount();
@@ -43,52 +38,46 @@ const HomePage = () => {
               You're logged in! Start exploring Spotify's vast music library or join a collaborative music session.
             </Typography>
             
-            <Grid container spacing={3} sx={{ mt: 4 }}>
-              <Grid item xs={12} md={4}>
-                <Button
-                  component={Link}
-                  to="/search"
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  fullWidth
-                  startIcon={<SearchIcon />}
-                  sx={{ py: 2 }}
-                >
-                  Search Music
-                </Button>
-              </Grid>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mt: 4 }}>
+              <Button
+                component={Link}
+                to="/search"
+                variant="contained"
+                color="primary"
+                size="large"
+                fullWidth
+                startIcon={<SearchIcon />}
+                sx={{ py: 2 }}
+              >
+                Search Music
+              </Button>
               
-              <Grid item xs={12} md={4}>
-                <Button
-                  component={Link}
-                  to="/sessions"
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  fullWidth
-                  startIcon={<GroupIcon />}
-                  sx={{ py: 2 }}
-                >
-                  Browse Sessions
-                </Button>
-              </Grid>
+              <Button
+                component={Link}
+                to="/sessions"
+                variant="contained"
+                color="primary"
+                size="large"
+                fullWidth
+                startIcon={<GroupIcon />}
+                sx={{ py: 2 }}
+              >
+                Browse Sessions
+              </Button>
               
-              <Grid item xs={12} md={4}>
-                <Button
-                  component={Link}
-                  to="/sessions/create"
-                  variant="outlined"
-                  color="primary"
-                  size="large"
-                  fullWidth
-                  startIcon={<AddCircleIcon />}
-                  sx={{ py: 2 }}
-                >
-                  Create Session
-                </Button>
-              </Grid>
-            </Grid>
+              <Button
+                component={Link}
+                to="/sessions/create"
+                variant="outlined"
+                color="primary"
+                size="large"
+                fullWidth
+                startIcon={<AddCircleIcon />}
+                sx={{ py: 2 }}
+              >
+                Create Session
+              </Button>
+            </Stack>
           </Box>
         ) : (
           <Box sx={{ width: '100%', maxWidth: 500, mb: 8 }}>
@@ -137,7 +126,16 @@ const HomePage = () => {
                 <Typography variant="body2" sx={{ mb: 2 }}>
                   Connected: {account.address.slice(0, 6)}...{account.address.slice(-4)}
                 </Typography>
-                <CreateSessionForm />
+                <Button 
+                  component={Link}
+                  to="/sessions/create"
+                  variant="contained" 
+                  color="primary" 
+                  fullWidth
+                  sx={{ mb: 2 }}
+                >
+                  Create New Session
+                </Button>
               </>
             )}
           </Box>
