@@ -142,7 +142,7 @@ const HomePage = () => {
         </Box>
         
         <Box sx={{ mt: 6 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
+          <Typography variant="h4" sx={{ mb: 2 }} align='center'>
             Features
           </Typography>
           
