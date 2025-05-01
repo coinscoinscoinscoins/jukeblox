@@ -296,12 +296,13 @@ const SessionsListPage = () => {
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                           {session.description}
                         </Typography>
-                        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
                           <Chip 
                             icon={<PeopleIcon />} 
                             label={`${session.participantCount} Participants`} 
                             size="small"
                             variant="outlined"
+                            sx={{ padding: 1 }}
                           />
                         </Box>
                       </Box>
