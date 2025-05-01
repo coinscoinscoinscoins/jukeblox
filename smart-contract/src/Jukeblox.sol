@@ -12,12 +12,19 @@ contract Jukeblox {
      * string
      */
 
+    struct SongRequest {
+        string songId;
+        address requester;
+    }
+
     // Structs are objects that contain nested variables
     struct Session {
         uint48 start;
         uint48 end;
-        string[] songRequests;
+        SongRequest[] songRequests;
     }
+
+
 
     // Storage variables persist on contract and can be accessed anytime
     address public owner;
