@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
-import { SpotifyClient } from '../../spotify-utils/src'
 import HomePage from './pages/HomePage'
 import SearchPage from './pages/SearchPage'
 import Navbar from './components/Navbar'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { AuthProvider, ProtectedRoute, useAuth } from './contexts/AuthContext'
+import SessionsListPage from './pages/SessionsListPage'
+import SessionDetailsPage from './pages/SessionDetailsPage'
+import CreateSessionPage from './pages/CreateSessionPage'
 
 // Spotify inspired theme
 const theme = createTheme({
@@ -51,71 +53,75 @@ const theme = createTheme({
   },
 });
 
+// Get environment variables (with fallbacks)
+const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID as string
+const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET as string 
+const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI as string || 'http://localhost:8888/callback'
+
+// App Router with Auth Provider
+function AppRouter() {
+  const { isAuthenticated, login, logout } = useAuth();
+
+  return (
+    <div className="app">
+      <Navbar 
+        isAuthenticated={isAuthenticated} 
+        onLogin={login}
+        onLogout={logout}
+      />
+      
+      <main>
+        <Routes>
+          <Route 
+            path="/" 
+            element={<HomePage />} 
+          />
+          <Route 
+            path="/callback" 
+            element={<HomePage />} 
+          />
+          <Route 
+            path="/search" 
+            element={
+              <ProtectedRoute>
+                <SearchPage />
+              </ProtectedRoute>
+            } 
+          />
+          {/* Session Routes */}
+          <Route 
+            path="/sessions" 
+            element={<SessionsListPage />} 
+          />
+          <Route 
+            path="/sessions/create" 
+            element={
+              <ProtectedRoute>
+                <CreateSessionPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/sessions/:sessionId" 
+            element={<SessionDetailsPage />} 
+          />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
 function App() {
-  const [spotifyClient, setSpotifyClient] = useState<SpotifyClient | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  // Get environment variables (with fallbacks)
-  const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID as string
-  const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET as string 
-  const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI as string || 'http://localhost:8888/callback'
-
-  // Check if we have stored auth data
-  useEffect(() => {
-    const storedAuth = sessionStorage.getItem('spotify_auth_data')
-    if (storedAuth) {
-      setIsAuthenticated(true)
-    }
-  }, [])
-
-  const handleAuthenticated = (client: SpotifyClient) => {
-    setSpotifyClient(client)
-    setIsAuthenticated(true)
-  }
-
   return (
     <ThemeProvider theme={theme}>
       <BrowserRouter>
-        <div className="app">
-          <Navbar isAuthenticated={isAuthenticated} />
-          
-          <main>
-            <Routes>
-              <Route 
-                path="/" 
-                element={
-                  isAuthenticated 
-                    ? <Navigate to="/search" replace /> 
-                    : <HomePage 
-                        clientId={clientId} 
-                        clientSecret={clientSecret} 
-                        redirectUri={redirectUri} 
-                        onAuthenticated={handleAuthenticated} 
-                      />
-                } 
-              />
-              <Route 
-                path="/callback" 
-                element={
-                  <HomePage 
-                    clientId={clientId} 
-                    clientSecret={clientSecret} 
-                    redirectUri={redirectUri} 
-                    onAuthenticated={handleAuthenticated} 
-                  />
-                } 
-              />
-              <Route 
-                path="/search" 
-                element={
-                  isAuthenticated 
-                    ? <SearchPage spotifyClient={spotifyClient} />
-                    : <Navigate to="/" replace />
-                } 
-              />
-            </Routes>
-          </main>
-        </div>
+        <AuthProvider 
+          clientId={clientId}
+          clientSecret={clientSecret}
+          redirectUri={redirectUri}
+        >
+          <AppRouter />
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   )

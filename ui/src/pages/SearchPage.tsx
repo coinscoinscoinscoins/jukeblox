@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useState, FormEvent, useEffect } from 'react'
 import { 
   Container, 
   Typography, 
@@ -18,77 +18,103 @@ import {
   Alert,
   Divider
 } from '@mui/material'
-import { SpotifyClient, SpotifySearchResponse } from '../../../spotify-utils/src'
 import SearchIcon from '@mui/icons-material/Search'
-
-interface SearchPageProps {
-  spotifyClient: SpotifyClient | null
-}
-
-// Type definitions for Spotify items
-interface SpotifyImage {
-  url: string;
-  height: number;
-  width: number;
-}
-
-interface SpotifyArtist {
-  id: string;
-  name: string;
-  images?: SpotifyImage[];
-  followers?: { total: number };
-}
-
-interface SpotifyAlbum {
-  id: string;
-  name: string;
-  images?: SpotifyImage[];
-  artists?: SpotifyArtist[];
-  release_date?: string;
-}
-
-interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists?: SpotifyArtist[];
-  album?: SpotifyAlbum;
-}
-
-interface SpotifyPlaylist {
-  id: string;
-  name: string;
-  images?: SpotifyImage[];
-  owner?: { display_name: string };
-  tracks?: { total: number };
-}
+import { useAuth } from '../contexts/AuthContext'
+import { 
+  SpotifySearchResponse,
+  SpotifyAlbum,
+  SpotifyArtist,
+  SpotifyPlaylist,
+  SpotifyTrack
+} from '../types'
 
 type SearchType = 'track' | 'artist' | 'album' | 'playlist'
 
-const SearchPage = ({ spotifyClient }: SearchPageProps) => {
+type SearchItemType = SpotifyTrack | SpotifyArtist | SpotifyAlbum | SpotifyPlaylist;
+
+const SearchPage = () => {
+  const { spotifyClient } = useAuth();
   const [searchQuery, setSearchQuery] = useState('')
   const [searchType, setSearchType] = useState<SearchType>('track')
   const [searchResults, setSearchResults] = useState<SpotifySearchResponse | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
+
+  // Check if client is properly initialized
+  useEffect(() => {
+    if (!spotifyClient) {
+      setDebugInfo('Warning: Spotify client is null. Authentication may have failed.')
+    } else {
+      setDebugInfo(null)
+    }
+  }, [spotifyClient])
 
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault()
     
-    if (!searchQuery.trim() || !spotifyClient) return
+    if (!searchQuery.trim()) {
+      setError('Please enter a search query')
+      return
+    }
+    
+    if (!spotifyClient) {
+      setError('Spotify client is not initialized. Try logging in again.')
+      return
+    }
     
     try {
       setIsSearching(true)
       setError(null)
       
+      console.debug(`Starting search for "${searchQuery}" with type "${searchType}"`)
+      
+      // Check for valid token before searching
+      try {
+        await spotifyClient.auth.getValidToken()
+      } catch (tokenErr) {
+        console.error('Token validation failed:', tokenErr)
+        setError('Authentication error: Unable to get a valid token. Try logging in again.')
+        setIsSearching(false)
+        return
+      }
+      
+      // Proceed with search
       const results = await spotifyClient.search.search({
         q: searchQuery,
         type: searchType,
+        market: 'from_token', // Add market parameter to help with authorization
         limit: 20
       })
       
       setSearchResults(results)
+      
+      // Show count of results
+      const count = results[`${searchType}s`]?.items?.length || 0
+      if (count === 0) {
+        setDebugInfo(`No ${searchType}s found matching "${searchQuery}"`)
+      } else {
+        setDebugInfo(null)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed')
+      console.error('Search error:', err)
+      
+      let errorMessage = 'Search failed'
+      
+      if (err instanceof Error) {
+        errorMessage = err.message
+        
+        // Handle specific known errors
+        if (errorMessage.includes('403')) {
+          errorMessage = `Access denied for ${searchType} searches. Try a different search type or login with your Spotify account instead of using client credentials.`
+        } else if (errorMessage.includes('401')) {
+          errorMessage = 'Authentication expired. Please log in again.'
+        } else if (errorMessage.includes('429')) {
+          errorMessage = 'Too many requests. Please wait a moment and try again.'
+        }
+      }
+      
+      setError(errorMessage)
       setSearchResults(null)
     } finally {
       setIsSearching(false)
@@ -104,7 +130,7 @@ const SearchPage = ({ spotifyClient }: SearchPageProps) => {
   }
 
   const renderSearchResults = () => {
-    const items = getResultItems()
+    const items = getResultItems() as SearchItemType[]
     
     if (isSearching) {
       return (
@@ -127,8 +153,8 @@ const SearchPage = ({ spotifyClient }: SearchPageProps) => {
     
     return (
       <Grid container spacing={2} sx={{ mt: 4 }}>
-        {items.map((item: any) => (
-          <Grid container item xs={12} sm={6} md={4} lg={3} key={item.id}>
+        {items.map((item: SearchItemType) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={item.id}>
             <Card 
               sx={{ 
                 height: '100%', 
@@ -156,25 +182,25 @@ const SearchPage = ({ spotifyClient }: SearchPageProps) => {
                 
                 {searchType === 'track' && (
                   <Typography variant="body2" color="text.secondary" noWrap>
-                    {item.artists?.[0]?.name} {item.album?.name ? `• ${item.album.name}` : ''}
+                    {(item as SpotifyTrack).artists?.[0]?.name} {(item as SpotifyTrack).album?.name ? `• ${(item as SpotifyTrack).album.name}` : ''}
                   </Typography>
                 )}
                 
                 {searchType === 'album' && (
                   <Typography variant="body2" color="text.secondary" noWrap>
-                    {item.artists?.[0]?.name} {item.release_date ? `• ${item.release_date.split('-')[0]}` : ''}
+                    {(item as SpotifyAlbum).artists?.[0]?.name} {(item as SpotifyAlbum).release_date ? `• ${(item as SpotifyAlbum).release_date.split('-')[0]}` : ''}
                   </Typography>
                 )}
                 
                 {searchType === 'artist' && (
                   <Typography variant="body2" color="text.secondary" noWrap>
-                    {formatFollowers(item.followers?.total)}
+                    {formatFollowers((item as SpotifyArtist).followers?.total)}
                   </Typography>
                 )}
                 
                 {searchType === 'playlist' && (
                   <Typography variant="body2" color="text.secondary" noWrap>
-                    {item.owner?.display_name} {item.tracks?.total ? `• ${item.tracks.total} tracks` : ''}
+                    {(item as SpotifyPlaylist).owner?.display_name} {(item as SpotifyPlaylist).tracks?.total ? `• ${(item as SpotifyPlaylist).tracks.total} tracks` : ''}
                   </Typography>
                 )}
               </CardContent>
@@ -186,12 +212,12 @@ const SearchPage = ({ spotifyClient }: SearchPageProps) => {
   }
 
   // Helper to extract image URL from result item
-  const getImageUrl = (item: any): string => {
-    if (item.images && item.images.length > 0) {
+  const getImageUrl = (item: SearchItemType): string => {
+    if ('images' in item && item.images && item.images.length > 0) {
       return item.images[0].url
     }
     
-    if (item.album?.images && item.album.images.length > 0) {
+    if ('album' in item && item.album?.images && item.album.images.length > 0) {
       return item.album.images[0].url
     }
     
@@ -221,6 +247,12 @@ const SearchPage = ({ spotifyClient }: SearchPageProps) => {
       </Typography>
       
       <Divider sx={{ mb: 4 }} />
+      
+      {debugInfo && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {debugInfo}
+        </Alert>
+      )}
       
       <Box 
         component="form" 

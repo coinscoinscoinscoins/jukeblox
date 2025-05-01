@@ -1,57 +1,61 @@
 # JukeBlox
 
-A Spotify-powered music application.
+A Spotify-powered music exploration application with a beautiful, responsive UI.
 
 ## Project Structure
 
-- `spotify-utils/`: A utility wrapper around the Spotify Web API
+This repository contains two main components:
+
+- **spotify-utils/**: A lightweight TypeScript wrapper around the Spotify Web API
   - Authentication (Auth Code and Client Credentials flows)
   - Search functionality
-- `ui/`: React-based user interface
+  - Token management and refresh
+  
+- **ui/**: A React-based user interface
+  - Modern Spotify-inspired design
+  - Routing and navigation
+  - Authentication flow
+  - Search interface with responsive results
 
-## Getting Started
+## Quick Start
 
-### 1. Setup Spotify API Credentials
+For detailed setup instructions, see the README in each subdirectory:
+- [UI Setup Instructions](ui/README.md)
+- [Spotify Utils Documentation](spotify-utils/README.md)
 
-1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)
-2. Create a new application
-3. Note your Client ID and Client Secret
-4. Add `http://localhost:5173/callback` as a Redirect URI in your application settings
+### Basic Setup
 
-### 2. Setup Environment Variables
+1. **Create a Spotify Developer App**
+   - Register at [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/)
+   - Create a new application
+   - Set the redirect URI to `http://localhost:8888/callback`
+   - Note your Client ID and Client Secret
 
-Create a `.env` file in the `ui` directory:
+2. **Configure Environment**
+   - Create `.env` files in both the `ui/` and `spotify-utils/` directories
+   - Add your Spotify credentials (see subdirectory READMEs for details)
 
-```
-VITE_SPOTIFY_CLIENT_ID=your_client_id_here
-VITE_SPOTIFY_CLIENT_SECRET=your_client_secret_here
-VITE_SPOTIFY_REDIRECT_URI=http://localhost:5173/callback
-```
+3. **Install Dependencies and Run**
+   ```bash
+   # Set up Spotify Utils
+   cd spotify-utils
+   npm install
+   npm run build
+   
+   # Set up and run UI
+   cd ../ui
+   npm install
+   npm run dev
+   ```
 
-### 3. Install Dependencies and Run
-
-```bash
-# Install UI dependencies
-cd ui
-npm install
-
-# Install Spotify Utils dependencies
-cd ../spotify-utils
-npm install
-
-# Build the Spotify Utils
-npm run build
-
-# Run the UI
-cd ../ui
-npm run dev
-```
+4. Open your browser to http://localhost:8888
 
 ## Features
 
-- Spotify Authentication
-- Music Search
-- More coming soon!
+- **Authentication**: Login with Spotify or use Client Credentials
+- **Search**: Find artists, albums, tracks, and playlists
+- **Responsive Design**: Works on desktop and mobile devices
+- **Persistent Sessions**: Stay logged in between page refreshes
 
 ## TODO
 - Add more Spotify API endpoints

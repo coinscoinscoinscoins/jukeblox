@@ -1,24 +1,13 @@
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 interface NavbarProps {
-  isAuthenticated: boolean
+  isAuthenticated: boolean;
+  onLogout: () => void;
+  onLogin: () => void;
 }
 
-const Navbar = ({ isAuthenticated }: NavbarProps) => {
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    // Clear auth data from session storage
-    sessionStorage.removeItem('spotify_auth_data')
-    
-    // Redirect to home page
-    navigate('/')
-    
-    // Reload the page to reset all states
-    window.location.reload()
-  }
-
+const Navbar = ({ isAuthenticated, onLogout, onLogin }: NavbarProps) => {
   return (
     <AppBar position="static" color="secondary" elevation={0}>
       <Toolbar>
@@ -44,6 +33,14 @@ const Navbar = ({ isAuthenticated }: NavbarProps) => {
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button 
+            component={Link} 
+            to="/sessions" 
+            color="inherit"
+          >
+            Sessions
+          </Button>
+          
           {isAuthenticated ? (
             <>
               <Button 
@@ -53,20 +50,34 @@ const Navbar = ({ isAuthenticated }: NavbarProps) => {
               >
                 Search
               </Button>
+              {isAuthenticated && (
+                <Button 
+                  component={Link}
+                  to="/sessions/create"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ 
+                    borderRadius: '20px', 
+                    borderWidth: '2px',
+                    '&:hover': { borderWidth: '2px' } 
+                  }}
+                >
+                  Create Session
+                </Button>
+              )}
               <Button 
                 color="primary" 
                 variant="contained"
-                onClick={handleLogout}
+                onClick={onLogout}
               >
                 Logout
               </Button>
             </>
           ) : (
             <Button 
-              component={Link} 
-              to="/" 
               color="primary" 
               variant="contained"
+              onClick={onLogin}
             >
               Login
             </Button>
