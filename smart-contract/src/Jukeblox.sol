@@ -24,8 +24,6 @@ contract Jukeblox {
         SongRequest[] songRequests;
     }
 
-
-
     // Storage variables persist on contract and can be accessed anytime
     address public owner;
 
@@ -43,8 +41,8 @@ contract Jukeblox {
      * Events can have named arguments
      */
     event SessionCreated(uint256 sessionId, uint48 start, uint48 end);
-    event AddSongRequest(uint256 sessionId, string song);
-    event RemoveSongRequest(uint256 sessionId, string song);
+    event AddSongRequest(uint256 sessionId, string songId, address requester);
+    event RemoveSongRequest(uint256 sessionId, string songId, address requester);
 
     /**
      * Errors can provide more context about why an execution failed
@@ -96,14 +94,25 @@ contract Jukeblox {
         sessionId = sessions.length;
 
         // Set both mapping value and increment sessions.length in storage
-        sessions.push(Session({start: start, end: end, songRequests: new string[](0)}));
+        sessions.push(Session({start: start, end: end, songRequests: new SongRequest[](0)}));
 
         // Emit log for offchain indexing
         emit SessionCreated(sessionId, start, end);
     }
 
-    function addSongRequest(uint256 sessionId, string memory song) external {
-        sessions[sessionId].songRequests.push(song);
-        emit AddSongRequest(sessionId, song);
+    function addSongRequest(uint256 sessionId, string memory songId) external {
+        sessions[sessionId].songRequests.push(SongRequest({songId: songId, requester: msg.sender}));
+        emit AddSongRequest(sessionId, songId, msg.sender);
+    }
+
+    function removeSongRequest(uint256 sessionId, string memory songId) external {
+        for (uint256 i = 0; i < sessions[sessionId].songRequests.length; i++) {
+            if (sessions[sessionId].songRequests[i].songId === songId) {
+                sessions[sessionId].songRequests[i] = sessions[sessionId].songRequests[sessions[sessionId].songRequests.length - 1];
+                sessions[sessionId].songRequests.pop();
+                emit RemoveSongRequest(sessionId, songId, msg.sender);
+                return;
+            }
+        }
     }
 }
