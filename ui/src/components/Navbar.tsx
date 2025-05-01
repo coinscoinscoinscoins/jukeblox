@@ -1,6 +1,9 @@
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
+import { AppBar, Toolbar, Typography, Button, Box, Chip, Tooltip } from '@mui/material'
 import { Link } from 'react-router-dom'
 import { WalletComponent } from './Wallet';
+import { useSession } from '../contexts/SessionContext'
+import MusicNoteIcon from '@mui/icons-material/MusicNote'
+import ExitToAppIcon from '@mui/icons-material/ExitToApp'
 
 interface NavbarProps {
   isAuthenticated: boolean;
@@ -9,6 +12,8 @@ interface NavbarProps {
 }
 
 const Navbar = ({ isAuthenticated, onLogout, onLogin }: NavbarProps) => {
+  const { currentSession, leaveSession } = useSession();
+
   return (
     <AppBar position="static" color="secondary" elevation={0}>
       <Toolbar>
@@ -32,6 +37,23 @@ const Navbar = ({ isAuthenticated, onLogout, onLogin }: NavbarProps) => {
           />
           JukeBlox
         </Typography>
+
+        {currentSession && (
+          <Chip
+            icon={<MusicNoteIcon />}
+            label={`In Session: ${currentSession.name}`}
+            color="primary"
+            component={Link}
+            to={`/sessions/${currentSession.id}`}
+            clickable
+            sx={{ 
+              mr: 2, 
+              '& .MuiChip-label': { fontWeight: 500 },
+              height: '32px',
+              '&:hover': { opacity: 0.9 }
+            }}
+          />
+        )}
 
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button 
@@ -69,6 +91,25 @@ const Navbar = ({ isAuthenticated, onLogout, onLogin }: NavbarProps) => {
                   Create Session
                 </Button>
               )}
+              
+              {currentSession && (
+                <Tooltip title="Leave current session">
+                  <Button
+                    color="primary"
+                    variant="outlined"
+                    startIcon={<ExitToAppIcon />}
+                    onClick={leaveSession}
+                    sx={{ 
+                      borderRadius: '20px', 
+                      borderWidth: '2px',
+                      '&:hover': { borderWidth: '2px' } 
+                    }}
+                  >
+                    Leave
+                  </Button>
+                </Tooltip>
+              )}
+              
               <Button 
                 color="primary" 
                 variant="contained"

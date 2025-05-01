@@ -5,6 +5,7 @@ import SearchPage from './pages/SearchPage'
 import Navbar from './components/Navbar'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { AuthProvider, ProtectedRoute, useAuth } from './contexts/AuthContext'
+import { SessionProvider } from './contexts/SessionContext'
 import SessionsListPage from './pages/SessionsListPage'
 import SessionDetailsPage from './pages/SessionDetailsPage'
 import CreateSessionPage from './pages/CreateSessionPage'
@@ -122,7 +123,9 @@ function App() {
           clientSecret={clientSecret}
           redirectUri={redirectUri}
         >
-          <AppRouter />
+          <SessionProvider>
+            <AppRouter />
+          </SessionProvider>
         </AuthProvider>
       </BrowserRouter>
       </WalletProvider>

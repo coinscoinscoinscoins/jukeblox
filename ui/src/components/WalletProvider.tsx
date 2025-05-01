@@ -11,8 +11,6 @@ interface WalletProviderProps {
 const queryClient = new QueryClient();
 
 export default function WalletProvider({ children }: WalletProviderProps) {
-  // Using Base Sepolia testnet
-  const chain = baseSepolia;
 
   return (
     <QueryClientProvider client={queryClient}>
