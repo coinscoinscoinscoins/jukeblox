@@ -1,5 +1,6 @@
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
 import { Link } from 'react-router-dom'
+import { WalletComponent } from './Wallet';
 
 interface NavbarProps {
   isAuthenticated: boolean;
@@ -40,7 +41,10 @@ const Navbar = ({ isAuthenticated, onLogout, onLogin }: NavbarProps) => {
           >
             Sessions
           </Button>
-          
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'flex-end', mb: 4 }}>
+            <WalletComponent />
+          </Box>
+
           {isAuthenticated ? (
             <>
               <Button 
