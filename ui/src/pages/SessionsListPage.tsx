@@ -11,7 +11,7 @@ import {
   InputBase,
   IconButton,
   Paper,
-  Grid,
+  Stack,
   Chip,
   Alert
 } from '@mui/material';
@@ -23,7 +23,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import PublicIcon from '@mui/icons-material/Public';
 import SortIcon from '@mui/icons-material/Sort';
 import AddIcon from '@mui/icons-material/Add';
-import { useReadContract } from 'wagmi';
+import { useReadContract, useInfiniteReadContracts } from 'wagmi';
 import { jukebloxContract, JukebloxAbi } from '../lib/JukebloxContract';
 
 // Mock data types
@@ -35,6 +35,12 @@ interface SessionListItem {
   participantCount: number;
   hostName: string;
   createdAt: string;
+}
+
+// Contract session type
+interface ContractSession {
+  start: bigint;
+  end: bigint;
 }
 
 const SessionsListPage = () => {
@@ -57,75 +63,112 @@ const SessionsListPage = () => {
     functionName: 'totalSessions',
   });
   
-  useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        setLoading(true);
-        
-        // In a real app, this would be an API call
-        // This is just mock data for now
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock session data
-        const mockSessions: SessionListItem[] = [
-          {
-            id: 'session-1',
-            name: 'Friday Night Party Mix',
-            description: 'Collaborative playlist for our weekend hangout',
-            isPublic: true,
-            participantCount: 8,
-            hostName: 'DJ Host',
-            createdAt: '2023-07-15T18:00:00Z'
-          },
-          {
-            id: 'session-2',
-            name: 'Workout Motivation',
-            description: 'High energy tracks to keep you going',
-            isPublic: true,
-            participantCount: 5,
-            hostName: 'FitnessFan',
-            createdAt: '2023-07-14T15:30:00Z'
-          },
-          {
-            id: 'session-3',
-            name: 'Chill Study Vibes',
-            description: 'Lo-fi beats and ambient music for focus',
-            isPublic: false,
-            participantCount: 3,
-            hostName: 'StudyBuddy',
-            createdAt: '2023-07-12T20:45:00Z'
-          },
-          {
-            id: 'session-4',
-            name: 'Road Trip Playlist',
-            description: 'Songs for the long journey ahead',
-            isPublic: true,
-            participantCount: 4,
-            hostName: 'Traveler',
-            createdAt: '2023-07-10T09:15:00Z'
-          },
-          {
-            id: 'session-5',
-            name: 'Coffee Shop Ambience',
-            description: 'Acoustic and indie vibes',
-            isPublic: true,
-            participantCount: 6,
-            hostName: 'CoffeeConnoisseur',
-            createdAt: '2023-07-08T14:20:00Z'
-          }
-        ];
-        
-        setSessions(mockSessions);
-      } catch (err) {
-        console.error('Failed to fetch sessions:', err);
-        setError('Failed to load sessions');
-      } finally {
-        setLoading(false);
+  // Fetch session details with pagination (limit 50 per page)
+  const {
+    data: sessionData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingSessionDetails,
+    isError: isSessionDetailsError
+  } = useInfiniteReadContracts({
+    cacheKey: 'sessionDetails',
+    contracts(pageParam: number) {
+      // If we don't have totalSessions yet, return empty array
+      if (totalSessions === undefined) {
+        return [];
       }
+      
+      // Calculate how many sessions to fetch in this page
+      const totalSessionsNum = Number(totalSessions);
+      const startIdx = pageParam;
+      const endIdx = Math.min(startIdx + 50, totalSessionsNum);
+      
+      // If there are no sessions in this page, return empty array
+      if (startIdx >= totalSessionsNum) {
+        return [];
+      }
+      
+      // Create an array of contract calls, one for each session
+      const calls = [];
+      for (let i = 0; i < endIdx - startIdx; i++) {
+        const sessionIdx = BigInt(startIdx + i);
+        calls.push({
+          address: jukebloxContract,
+          abi: JukebloxAbi,
+          functionName: 'sessions',
+          args: [sessionIdx]
+        });
+      }
+      return calls;
+    },
+    query: {
+      initialPageParam: 0,
+      getNextPageParam: (_lastPage, _allPages, lastPageParam) => {
+        if (totalSessions === undefined) return undefined;
+        
+        const totalSessionsNum = Number(totalSessions);
+        const nextPageParam = lastPageParam + 50;
+        
+        return nextPageParam < totalSessionsNum ? nextPageParam : undefined;
+      },
+      enabled: totalSessions !== undefined
+    }
+  });
+  
+  // Process contract data when it changes
+  useEffect(() => {
+    const processContractSessions = () => {
+      if (!sessionData) return;
+      
+      const contractSessions: ContractSession[] = [];
+      
+      // Flatten all pages and collect valid results
+      sessionData.pages.forEach((page) => {
+        page.forEach((result) => {
+          if (result.status === 'success') {
+            contractSessions.push(result.result as ContractSession);
+          }
+        });
+      });
+      
+      // Convert contract sessions to our UI format
+      const formattedSessions = contractSessions.map((session, index) => {
+        // Convert timestamp to date
+        const startDate = new Date(Number(session.start) * 1000);
+        const endDate = new Date(Number(session.end) * 1000);
+        
+        return {
+          id: `session-${index}`,
+          name: `Session #${index}`,
+          description: `Active from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`,
+          isPublic: true,
+          participantCount: Math.floor(Math.random() * 10) + 1, // Random for now
+          hostName: 'Contract Owner',
+          createdAt: "test"
+        };
+      });
+      
+      setSessions(formattedSessions);
+      setLoading(false);
     };
     
-    fetchSessions();
-  }, []);
+    if (isLoadingSessionDetails) {
+      setLoading(true);
+    } else if (isSessionDetailsError) {
+      setError('Failed to load session details from contract');
+      setLoading(false);
+    } else {
+      processContractSessions();
+    }
+  }, [sessionData, isLoadingSessionDetails, isSessionDetailsError]);
+  
+  // Load more sessions when user scrolls to bottom
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
   
   const filteredSessions = sessions.filter(session => 
     session.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -232,17 +275,21 @@ const SessionsListPage = () => {
             </Button>
           </Box>
         ) : (
-          <Grid container spacing={3}>
-            {filteredSessions.map(session => (
-              <Grid key={session.id} item xs={12}>
-                <Card sx={{ 
-                  bgcolor: 'background.paper',
-                  '&:hover': { 
-                    boxShadow: 6,
-                    transform: 'translateY(-4px)',
-                  },
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                }}>
+          <>
+            <Stack spacing={3}>
+              {filteredSessions.map(session => (
+                <Card 
+                  key={session.id}
+                  sx={{ 
+                    width: '100%',
+                    bgcolor: 'background.paper',
+                    '&:hover': { 
+                      boxShadow: 6,
+                      transform: 'translateY(-4px)',
+                    },
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                  }}
+                >
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <Box>
@@ -267,7 +314,7 @@ const SessionsListPage = () => {
                             color={session.isPublic ? 'success' : 'default'}
                           />
                           <Chip 
-                            label={`Created ${formatDate(session.createdAt)}`} 
+                            label={`Created ${session.createdAt}`} 
                             size="small"
                             variant="outlined"
                           />
@@ -289,9 +336,21 @@ const SessionsListPage = () => {
                     </Box>
                   </CardContent>
                 </Card>
-              </Grid>
-            ))}
-          </Grid>
+              ))}
+            </Stack>
+            
+            {hasNextPage && (
+              <Box sx={{ textAlign: 'center', mt: 4 }}>
+                <Button 
+                  variant="outlined" 
+                  onClick={handleLoadMore}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? 'Loading more...' : 'Load More Sessions'}
+                </Button>
+              </Box>
+            )}
+          </>
         )}
       </Box>
     </Container>
