@@ -1,15 +1,14 @@
-import { Container, Typography, Box } from '@mui/material'
+import { Container, Typography, Box, Button, Grid } from '@mui/material'
 import { SpotifyAuth } from '../components/SpotifyAuth'
-import { SpotifyClient } from '../../../spotify-utils/src'
+import { useAuth } from '../contexts/AuthContext'
+import { Link } from 'react-router-dom'
+import SearchIcon from '@mui/icons-material/Search'
+import GroupIcon from '@mui/icons-material/Group'
+import AddCircleIcon from '@mui/icons-material/AddCircle'
 
-interface HomePageProps {
-  clientId: string
-  clientSecret: string
-  redirectUri: string
-  onAuthenticated: (client: SpotifyClient) => void
-}
+const HomePage = () => {
+  const { isAuthenticated } = useAuth();
 
-const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: HomePageProps) => {
   return (
     <Container maxWidth="md">
       <Box 
@@ -30,28 +29,78 @@ const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: Home
           Your Spotify-powered music exploration platform
         </Typography>
         
-        <Box sx={{ width: '100%', maxWidth: 500, mb: 8 }}>
-          <Typography variant="body1" sx={{ mb: 4 }}>
-            JukeBlox lets you search for your favorite artists, albums, and tracks 
-            using the Spotify API. Login with your Spotify account to get started.
-          </Typography>
-          
-          <Box
-            sx={{
-              bgcolor: 'background.paper',
-              borderRadius: 2,
-              p: 4,
-              boxShadow: 3,
-            }}
-          >
-            <SpotifyAuth
-              clientId={clientId}
-              clientSecret={clientSecret}
-              redirectUri={redirectUri}
-              onAuthenticated={onAuthenticated}
-            />
+        {isAuthenticated ? (
+          <Box sx={{ width: '100%', maxWidth: 600, mb: 8 }}>
+            <Typography variant="body1" sx={{ mb: 4 }}>
+              You're logged in! Start exploring Spotify's vast music library or join a collaborative music session.
+            </Typography>
+            
+            <Grid container spacing={3} sx={{ mt: 4 }}>
+              <Grid item xs={12} md={4}>
+                <Button
+                  component={Link}
+                  to="/search"
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  fullWidth
+                  startIcon={<SearchIcon />}
+                  sx={{ py: 2 }}
+                >
+                  Search Music
+                </Button>
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <Button
+                  component={Link}
+                  to="/sessions"
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  fullWidth
+                  startIcon={<GroupIcon />}
+                  sx={{ py: 2 }}
+                >
+                  Browse Sessions
+                </Button>
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <Button
+                  component={Link}
+                  to="/sessions/create"
+                  variant="outlined"
+                  color="primary"
+                  size="large"
+                  fullWidth
+                  startIcon={<AddCircleIcon />}
+                  sx={{ py: 2 }}
+                >
+                  Create Session
+                </Button>
+              </Grid>
+            </Grid>
           </Box>
-        </Box>
+        ) : (
+          <Box sx={{ width: '100%', maxWidth: 500, mb: 8 }}>
+            <Typography variant="body1" sx={{ mb: 4 }}>
+              JukeBlox lets you search for your favorite artists, albums, and tracks 
+              using the Spotify API. Login with your Spotify account to get started.
+            </Typography>
+            
+            <Box
+              sx={{
+                bgcolor: 'background.paper',
+                borderRadius: 2,
+                p: 4,
+                boxShadow: 3,
+              }}
+            >
+              <SpotifyAuth />
+            </Box>
+          </Box>
+        )}
         
         <Box sx={{ mt: 6 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
@@ -64,12 +113,12 @@ const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: Home
               description="Find your favorite music using Spotify's extensive catalog"
             />
             <FeatureCard 
-              title="Discover" 
-              description="Explore new artists and tracks based on your preferences"
+              title="Collaborate" 
+              description="Create and join music sessions with friends"
             />
             <FeatureCard 
               title="Share" 
-              description="Share your discoveries with friends"
+              description="Share your discoveries with the community"
             />
           </Box>
         </Box>

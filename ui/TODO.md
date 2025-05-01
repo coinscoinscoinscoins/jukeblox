@@ -1,0 +1,2 @@
+- [ ] search type selector - only need tracks for MVP
+- [ ] Fix the display for tracks

@@ -155,6 +155,21 @@ export class SpotifyAuth {
     return this.accessToken as string;
   }
 
+  /**
+   * Set tokens directly from saved authentication data
+   * @param accessToken The access token
+   * @param expiresAt Timestamp when the token expires (in milliseconds)
+   * @param refreshToken Optional refresh token
+   */
+  setTokensFromStorage(accessToken: string, expiresAt: number, refreshToken?: string): void {
+    this.accessToken = accessToken;
+    this.tokenExpiresAt = expiresAt;
+    
+    if (refreshToken) {
+      this.refreshToken = refreshToken;
+    }
+  }
+
   private setTokenData(tokenData: SpotifyAuthTokenResponse): void {
     this.accessToken = tokenData.access_token;
     this.tokenExpiresAt = Date.now() + tokenData.expires_in * 1000;
