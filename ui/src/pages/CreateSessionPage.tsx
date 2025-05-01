@@ -105,12 +105,6 @@ const CreateSessionPage = () => {
       }}>
         <Typography 
           variant="h3" 
-          sx={{ 
-            fontWeight: 700,
-            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-            backgroundClip: 'text',
-            color: 'transparent'
-          }}
         >
           Create a New Session
         </Typography>
@@ -219,13 +213,6 @@ const CreateSessionPage = () => {
               disabled={!name.trim() || isPending || isConfirming}
               sx={{
                 py: 2,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontSize: '1.1rem',
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #1976D2 30%, #1CB5E0 90%)'
-                }
               }}
             >
               {isPending || isConfirming ? (
