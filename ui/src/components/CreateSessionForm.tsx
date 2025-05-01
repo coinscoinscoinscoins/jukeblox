@@ -4,8 +4,10 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { jukebloxContract, JukebloxAbi } from '../lib/JukebloxContract';
 
 export default function CreateSessionForm() {
-  const [startTime, setStartTime] = useState<string>('');
-  const [endTime, setEndTime] = useState<string>('');
+  const now = new Date();
+  const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const [startTime, setStartTime] = useState<string>(now.toISOString().slice(0, 16));
+  const [endTime, setEndTime] = useState<string>(oneYearLater.toISOString().slice(0, 16));
   
   const { 
     data: hash, 
