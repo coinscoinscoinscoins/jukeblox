@@ -5,8 +5,23 @@ import { Link } from 'react-router-dom'
 import SearchIcon from '@mui/icons-material/Search'
 import GroupIcon from '@mui/icons-material/Group'
 import AddCircleIcon from '@mui/icons-material/AddCircle'
+import { SpotifyClient } from '../../../spotify-utils/src'
+import { ConnectWallet, Wallet } from '@coinbase/onchainkit/wallet'
+import { useAccount } from 'wagmi'
+import CreateSessionForm from '../components/CreateSessionForm'
 
-const HomePage = () => {
+
+
+
+interface HomePageProps {
+  clientId: string
+  clientSecret: string
+  redirectUri: string
+  onAuthenticated: (client: SpotifyClient) => void
+}
+
+const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: HomePageProps) => {
+  const account = useAccount();
   const { isAuthenticated } = useAuth();
 
   return (
@@ -99,8 +114,64 @@ const HomePage = () => {
             >
               <SpotifyAuth />
             </Box>
+        <Box sx={{ width: '100%', maxWidth: 500, mb: 8 }}>
+          <Typography variant="body1" sx={{ mb: 4 }}>
+            JukeBlox lets you search for your favorite artists, albums, and tracks 
+            using the Spotify API. Login with your Spotify account to get started.
+          </Typography>
+          
+          <Box
+            sx={{
+              bgcolor: 'background.paper',
+              borderRadius: 2,
+              p: 4,
+              boxShadow: 3,
+              mb: 4,
+            }}
+          >
+            <SpotifyAuth
+              clientId={clientId}
+              clientSecret={clientSecret}
+              redirectUri={redirectUri}
+              onAuthenticated={onAuthenticated}
+            />
+          </Box>
+          </Box>
           </Box>
         )}
+          
+          {/* Blockchain Integration Section */}
+          <Box
+            sx={{
+              bgcolor: 'background.paper',
+              borderRadius: 2,
+              p: 4,
+              boxShadow: 3,
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 2 }}>JukeBlox Sessions</Typography>
+            <Typography variant="body2" sx={{ mb: 3 }}>
+              Connect your wallet to create music listening sessions on the blockchain
+            </Typography>
+
+            {!account?.address ? (
+              <Wallet>
+                <ConnectWallet>
+                  <Button variant="contained" color="primary" fullWidth>
+                    Connect Wallet
+                  </Button>
+                </ConnectWallet>
+              </Wallet>
+            ) : (
+              <>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  Connected: {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                </Typography>
+                <CreateSessionForm />
+              </>
+            )}
+          </Box>
+        </Box>
         
         <Box sx={{ mt: 6 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
@@ -122,8 +193,10 @@ const HomePage = () => {
             />
           </Box>
         </Box>
-      </Box>
+
+
     </Container>
+
   )
 }
 

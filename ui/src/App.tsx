@@ -8,6 +8,7 @@ import { AuthProvider, ProtectedRoute, useAuth } from './contexts/AuthContext'
 import SessionsListPage from './pages/SessionsListPage'
 import SessionDetailsPage from './pages/SessionDetailsPage'
 import CreateSessionPage from './pages/CreateSessionPage'
+import WalletProvider from './components/WalletProvider'
 
 // Spotify inspired theme
 const theme = createTheme({
@@ -114,6 +115,7 @@ function AppRouter() {
 function App() {
   return (
     <ThemeProvider theme={theme}>
+      <WalletProvider>
       <BrowserRouter>
         <AuthProvider 
           clientId={clientId}
@@ -123,6 +125,7 @@ function App() {
           <AppRouter />
         </AuthProvider>
       </BrowserRouter>
+      </WalletProvider>
     </ThemeProvider>
   )
 }
