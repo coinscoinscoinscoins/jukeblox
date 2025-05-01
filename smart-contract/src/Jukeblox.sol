@@ -23,11 +23,12 @@ contract Jukeblox {
         uint48 end;
         SongRequest[] songRequests;
         string name;
-        uint256 cost;
+        uint256 cost; // in wei
     }
 
     // Storage variables persist on contract and can be accessed anytime
     address public owner;
+    // uint256 public constant COST_IN_WEI = 10 ** 9;
 
     /**
      * Arrays are mappings with length storage
@@ -54,6 +55,9 @@ contract Jukeblox {
     error SessionDoesNotExist(uint256 sessionId, uint256 totalSessions);
     error SessionNotActive(uint256 sessionId);
     error InsufficientFunds(uint256 provided, uint256 required);
+    error InvalidCost(uint256 cost);
+    error NoSongRequests(uint256 sessionId);
+
     // Constructors are run only when deploying a contract
     constructor(address owner_) {
         owner = owner_;
@@ -87,14 +91,23 @@ contract Jukeblox {
         return block.timestamp >= session.start && block.timestamp < session.end;
     }
 
+    function getSongRequests(uint256 sessionId) external view returns (SongRequest[] memory) {
+        return sessions[sessionId].songRequests;
+    }
+
+    function getCost(uint256 sessionId) external view returns (uint256) {
+        return sessions[sessionId].cost;
+    }
+
     /// @notice Create a new session.
     function createSession(uint48 start, uint48 end, string memory name, uint256 cost) external returns (uint256 sessionId) {
         // Check session start is before end
         if (start >= end) revert InvalidStartEnd(start, end);
-
+        if (cost <= 0) revert InvalidCost(cost);
+        
         // Set id as current length (next index to insert)
         sessionId = sessions.length;
-
+        
         // Set both mapping value and increment sessions.length in storage
         sessions.push(Session({start: start, end: end, songRequests: new SongRequest[](0), name: name, cost: cost}));
 
@@ -103,12 +116,18 @@ contract Jukeblox {
     }
 
     function addSongRequest(uint256 sessionId, string memory songId) external payable {
+        if (!isActive(sessionId)) revert SessionNotActive(sessionId);
         if (msg.value < sessions[sessionId].cost) revert InsufficientFunds(msg.value, sessions[sessionId].cost);
+        
         sessions[sessionId].songRequests.push(SongRequest({songId: songId, requester: msg.sender}));
+        
         emit AddSongRequest(sessionId, songId, msg.sender);
     }
 
     function removeSongRequest(uint256 sessionId, string memory songId) external {
+        if (!isActive(sessionId)) revert SessionNotActive(sessionId);
+        if (sessions[sessionId].songRequests.length == 0) revert NoSongRequests(sessionId);
+
         for (uint256 i = 0; i < sessions[sessionId].songRequests.length; i++) {
             if (keccak256(bytes(sessions[sessionId].songRequests[i].songId)) == keccak256(bytes(songId))) {
                 sessions[sessionId].songRequests[i] = sessions[sessionId].songRequests[sessions[sessionId].songRequests.length - 1];
@@ -117,9 +136,5 @@ contract Jukeblox {
                 return;
             }
         }
-    }
-
-    function getSongRequests(uint256 sessionId) external view returns (SongRequest[] memory) {
-        return sessions[sessionId].songRequests;
     }
 }
