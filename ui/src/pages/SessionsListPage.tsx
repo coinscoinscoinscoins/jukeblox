@@ -38,10 +38,7 @@ interface SessionListItem {
 }
 
 // Contract session type
-interface ContractSession {
-  start: bigint;
-  end: bigint;
-}
+type ContractSession = [bigint, bigint, string, bigint]
 
 const SessionsListPage = () => {
   const { isAuthenticated } = useAuth();
@@ -134,18 +131,18 @@ const SessionsListPage = () => {
       
       // Convert contract sessions to our UI format
       const formattedSessions = contractSessions.map((session, index) => {
+        console.log(session)
         // Convert timestamp to date
-        const startDate = new Date(Number(session.start) * 1000);
-        const endDate = new Date(Number(session.end) * 1000);
+        const startDate = new Date(Number(session[0]) * 1000);
+        const endDate = new Date(Number(session[1]) * 1000);
         
         return {
           id: `session-${index}`,
-          name: `Session #${index}`,
+          name: session[2],
           description: `Active from ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`,
           isPublic: true,
           participantCount: Math.floor(Math.random() * 10) + 1, // Random for now
           hostName: 'Contract Owner',
-          createdAt: "test"
         };
       });
       
@@ -306,24 +303,9 @@ const SessionsListPage = () => {
                             size="small"
                             variant="outlined"
                           />
-                          <Chip 
-                            icon={session.isPublic ? <PublicIcon /> : <LockIcon />}
-                            label={session.isPublic ? 'Public' : 'Private'} 
-                            size="small"
-                            variant="outlined"
-                            color={session.isPublic ? 'success' : 'default'}
-                          />
-                          <Chip 
-                            label={`Created ${session.createdAt}`} 
-                            size="small"
-                            variant="outlined"
-                          />
                         </Box>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Host: {session.hostName}
-                        </Typography>
                         <Button 
                           variant="contained" 
                           size="small" 
