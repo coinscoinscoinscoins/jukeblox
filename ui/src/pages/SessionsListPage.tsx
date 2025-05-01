@@ -202,7 +202,7 @@ const SessionsListPage = () => {
           <Button 
             variant="contained" 
             color="primary"
-            startIcon={<AddIcon />}
+            startIcon={<AddIcon  color="white"/>}
             onClick={handleCreateSession}
             disabled={!isAuthenticated}
           >
@@ -241,7 +241,7 @@ const SessionsListPage = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <IconButton type="button" sx={{ p: '10px' }}>
+          <IconButton color="primary" type="button" sx={{ p: '10px' }}>
             <SearchIcon />
           </IconButton>
           <Divider sx={{ height: 28, m: 0.5 }} orientation="vertical" />
