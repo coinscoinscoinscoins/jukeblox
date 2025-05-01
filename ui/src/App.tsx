@@ -10,6 +10,7 @@ import SessionsListPage from './pages/SessionsListPage'
 import SessionDetailsPage from './pages/SessionDetailsPage'
 import CreateSessionPage from './pages/CreateSessionPage'
 import WalletProvider from './components/WalletProvider'
+import '@coinbase/onchainkit/styles.css'; 
 
 // Spotify inspired theme
 const theme = createTheme({

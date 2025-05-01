@@ -1,9 +1,9 @@
 import { AppBar, Toolbar, Typography, Button, Box, Chip, Tooltip } from '@mui/material'
 import { Link } from 'react-router-dom'
-import { WalletComponent } from './Wallet';
 import { useSession } from '../contexts/SessionContext'
 import MusicNoteIcon from '@mui/icons-material/MusicNote'
 import ExitToAppIcon from '@mui/icons-material/ExitToApp'
+import { Wallet } from '@coinbase/onchainkit/wallet';
 
 interface NavbarProps {
   isAuthenticated: boolean;
