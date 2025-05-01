@@ -75,7 +75,6 @@ const Navbar = ({ isAuthenticated, onLogout, onLogin }: NavbarProps) => {
                   color="primary"
                   variant="outlined"
                   sx={{ 
-                    borderRadius: '20px', 
                     borderWidth: '2px',
                     '&:hover': { borderWidth: '2px' } 
                   }}
