@@ -20,6 +20,8 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSession } from '../contexts/SessionContext';
+import { useReadContract } from 'wagmi';
+import { jukebloxContract, JukebloxAbi } from '../lib/JukebloxContract';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
@@ -68,7 +70,23 @@ const SessionDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasJoined, setHasJoined] = useState(false);
-  
+
+  // Add contract read hook for song requests
+  const { data: songRequests, isLoading: isLoadingSongs } = useReadContract({
+    abi: JukebloxAbi,
+    address: jukebloxContract,
+    functionName: 'getSongRequests',
+    args: sessionId ? [BigInt(sessionId.replace('session-', ''))] : undefined,
+  });
+
+  // Add contract read hook for session details
+  const { data: sessionDetails } = useReadContract({
+    abi: JukebloxAbi,
+    address: jukebloxContract,
+    functionName: 'sessions',
+    args: sessionId ? [BigInt(sessionId.replace('session-', ''))] : undefined,
+  });
+
   useEffect(() => {
     // Check if already joined this session
     if (currentSession && currentSession.id === sessionId) {
@@ -83,75 +101,34 @@ const SessionDetailsPage = () => {
       try {
         setLoading(true);
         
-        // In a real app, this would be an API call
-        // This is just mock data for now
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock session data
-        const mockSession: SessionData = {
+        // Convert song requests to our track format
+        const tracks = songRequests?.map((request, index) => ({
+          id: `track-${index}`,
+          name: request.songId, // Using songId as name for now
+          artist: 'Unknown Artist', // We don't have this data from contract
+          album: 'Unknown Album', // We don't have this data from contract
+          duration: 0, // We don't have this data from contract
+          addedBy: request.requester,
+        })) || [];
+
+        // Create session data from contract data
+        const sessionData: SessionData = {
           id: sessionId || '',
-          name: 'Friday Night Party Mix',
-          description: 'Collaborative playlist for our weekend hangout',
+          name: sessionDetails?.[2] || 'Unknown Session', // name from contract
+          description: 'Session created on Jukeblox',
           isPublic: true,
           host: {
-            id: 'user-1',
-            name: 'DJ Host',
-            avatar: 'https://i.pravatar.cc/150?img=1',
+            id: 'host-1',
+            name: 'Session Host',
             isHost: true
           },
-          participants: [
-            {
-              id: 'user-1',
-              name: 'DJ Host',
-              avatar: 'https://i.pravatar.cc/150?img=1',
-              isHost: true
-            },
-            {
-              id: 'user-2',
-              name: 'Music Lover',
-              avatar: 'https://i.pravatar.cc/150?img=2',
-              isHost: false
-            },
-            {
-              id: 'user-3',
-              name: 'Playlist Pro',
-              avatar: 'https://i.pravatar.cc/150?img=3',
-              isHost: false
-            }
-          ],
-          currentTrack: {
-            id: 'track-1',
-            name: 'Hotel California',
-            artist: 'Eagles',
-            album: 'Hotel California',
-            duration: 390000,
-            albumArt: 'https://i.scdn.co/image/ab67616d00001e02a500e3fa0f9d738ebe2e49cd',
-            addedBy: 'user-1'
-          },
-          queue: [
-            {
-              id: 'track-2',
-              name: 'Bohemian Rhapsody',
-              artist: 'Queen',
-              album: 'A Night at the Opera',
-              duration: 354000,
-              albumArt: 'https://i.scdn.co/image/ab67616d00001e02c6a5b2475c9ce6d598a08bb1',
-              addedBy: 'user-2'
-            },
-            {
-              id: 'track-3',
-              name: 'Sweet Child O\' Mine',
-              artist: 'Guns N\' Roses',
-              album: 'Appetite for Destruction',
-              duration: 356000,
-              albumArt: 'https://i.scdn.co/image/ab67616d00001e02996ee235f2f75787f5e5b42c',
-              addedBy: 'user-3'
-            }
-          ],
-          isPlaying: true
+          participants: [], // We don't have this data from contract
+          currentTrack: tracks[0],
+          queue: tracks.slice(1),
+          isPlaying: false
         };
         
-        setSession(mockSession);
+        setSession(sessionData);
       } catch (err) {
         console.error('Failed to fetch session:', err);
         setError('Failed to load session details');
@@ -160,13 +137,10 @@ const SessionDetailsPage = () => {
       }
     };
     
-    if (sessionId) {
+    if (sessionId && !isLoadingSongs && songRequests && sessionDetails) {
       fetchSessionData();
-    } else {
-      setError('No session ID provided');
-      setLoading(false);
     }
-  }, [sessionId, currentSession]);
+  }, [sessionId, currentSession, songRequests, sessionDetails, isLoadingSongs]);
 
   const handlePlayPause = () => {
     if (!session) return;
@@ -294,7 +268,7 @@ const SessionDetailsPage = () => {
         
         <Grid container spacing={4}>
           {/* Now Playing Section */}
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12}>
             <Paper sx={{ p: 3, bgcolor: 'background.paper' }}>
               <Typography variant="h6" sx={{ mb: 2 }}>Now Playing</Typography>
               
@@ -317,7 +291,7 @@ const SessionDetailsPage = () => {
                         {session.currentTrack.album}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Added by {session.participants.find(p => p.id === session.currentTrack?.addedBy)?.name}
+                        Added by Anonymous
                       </Typography>
                       
                       <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
@@ -385,7 +359,7 @@ const SessionDetailsPage = () => {
                         secondary={`${track.artist} • ${track.album}`}
                       />
                       <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
-                        Added by {session.participants.find(p => p.id === track.addedBy)?.name}
+                        Added by Anonymous
                       </Typography>
                     </ListItem>
                   ))}
@@ -395,29 +369,6 @@ const SessionDetailsPage = () => {
                   <Typography color="text.secondary">The queue is empty</Typography>
                 </Box>
               )}
-            </Paper>
-          </Grid>
-          
-          {/* Participants Section */}
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3, bgcolor: 'background.paper' }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Participants</Typography>
-              
-              <List>
-                {session.participants.map((participant, index) => (
-                  <ListItem key={participant.id} divider={index < session.participants.length - 1}>
-                    <ListItemAvatar>
-                      <Avatar src={participant.avatar}>
-                        {participant.name.charAt(0)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText 
-                      primary={participant.name}
-                      secondary={participant.isHost ? 'Host' : 'Participant'}
-                    />
-                  </ListItem>
-                ))}
-              </List>
             </Paper>
           </Grid>
         </Grid>
