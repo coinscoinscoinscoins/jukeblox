@@ -24,6 +24,8 @@ import SearchIcon from '@mui/icons-material/Search'
 import AddIcon from '@mui/icons-material/Add'
 import { useAuth } from '../contexts/AuthContext'
 import { useSession } from '../contexts/SessionContext'
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { jukebloxContract, JukebloxAbi } from '../lib/JukebloxContract'
 import { 
   SpotifySearchResponse,
   SpotifyTrack
@@ -38,6 +40,30 @@ const SearchPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<string | null>(null)
   const [addedTrack, setAddedTrack] = useState<string | null>(null)
+  const [processingTrack, setProcessingTrack] = useState<string | null>(null)
+
+  // Contract interaction hooks
+  const { 
+    data: hash, 
+    isPending, 
+    writeContract 
+  } = useWriteContract();
+
+  const { 
+    isLoading: isConfirming, 
+    isSuccess: isConfirmed 
+  } = useWaitForTransactionReceipt({ 
+    hash 
+  });
+
+  // Reset added track notification when transaction confirms
+  useEffect(() => {
+    if (isConfirmed && processingTrack) {
+      setAddedTrack(processingTrack)
+      setProcessingTrack(null)
+      setTimeout(() => setAddedTrack(null), 3000)
+    }
+  }, [isConfirmed, processingTrack])
 
   // Check if client is properly initialized
   useEffect(() => {
@@ -130,13 +156,27 @@ const SearchPage = () => {
       setError('You are not currently in a session. Join a session first to add tracks.')
       return
     }
-    
-    // In a real app, you'd make an API call to add the track to the session
-    console.log('Adding track to session:', track.name, 'Session ID:', currentSession.id)
-    
-    // Show success message
-    setAddedTrack(track.name)
-    setTimeout(() => setAddedTrack(null), 3000)
+
+    try {
+      // Save the track being processed
+      setProcessingTrack(track.name)
+      
+      // Hardcode the sessionId to 10
+      const sessionId = 10
+      
+      // Call the contract's addSongRequest function
+      writeContract({
+        address: jukebloxContract,
+        abi: JukebloxAbi,
+        functionName: 'addSongRequest',
+        args: [BigInt(sessionId), track.id],
+        value: BigInt(1), // Sending 1 wei as the cost
+      })
+    } catch (err) {
+      console.error('Failed to add track to session:', err)
+      setError(err instanceof Error ? err.message : 'Failed to add track to session')
+      setProcessingTrack(null)
+    }
   }
 
   const formatDuration = (ms: number): string => {
@@ -220,8 +260,13 @@ const SearchPage = () => {
                         size="small"
                         color="primary"
                         onClick={() => handleAddToSession(track)}
+                        disabled={isPending || isConfirming || processingTrack === track.name}
                       >
-                        <AddIcon />
+                        {(isPending || isConfirming) && processingTrack === track.name ? (
+                          <CircularProgress size={20} color="inherit" />
+                        ) : (
+                          <AddIcon />
+                        )}
                       </IconButton>
                     </Tooltip>
                   )}
@@ -251,6 +296,13 @@ const SearchPage = () => {
       {debugInfo && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           {debugInfo}
+        </Alert>
+      )}
+      
+      {hash && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
+          {isConfirmed ? ' (Confirmed)' : ' (Pending)'}
         </Alert>
       )}
       
