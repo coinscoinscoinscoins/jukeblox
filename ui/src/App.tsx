@@ -115,6 +115,7 @@ function AppRouter() {
 function App() {
   return (
     <ThemeProvider theme={theme}>
+      <WalletProvider>
       <BrowserRouter>
         <AuthProvider 
           clientId={clientId}
@@ -124,53 +125,8 @@ function App() {
           <AppRouter />
         </AuthProvider>
       </BrowserRouter>
+      </WalletProvider>
     </ThemeProvider>
-    <WalletProvider>
-      <ThemeProvider theme={theme}>
-        <BrowserRouter>
-          <div className="app">
-            <Navbar isAuthenticated={isAuthenticated} />
-            
-            <main>
-              <Routes>
-                <Route 
-                  path="/" 
-                  element={
-                    isAuthenticated 
-                      ? <Navigate to="/search" replace /> 
-                      : <HomePage 
-                          clientId={clientId} 
-                          clientSecret={clientSecret} 
-                          redirectUri={redirectUri} 
-                          onAuthenticated={handleAuthenticated} 
-                        />
-                  } 
-                />
-                <Route 
-                  path="/callback" 
-                  element={
-                    <HomePage 
-                      clientId={clientId} 
-                      clientSecret={clientSecret} 
-                      redirectUri={redirectUri} 
-                      onAuthenticated={handleAuthenticated} 
-                    />
-                  } 
-                />
-                <Route 
-                  path="/search" 
-                  element={
-                    isAuthenticated 
-                      ? <SearchPage spotifyClient={spotifyClient} />
-                      : <Navigate to="/" replace />
-                  } 
-                />
-              </Routes>
-            </main>
-          </div>
-        </BrowserRouter>
-      </ThemeProvider>
-    </WalletProvider>
   )
 }
 

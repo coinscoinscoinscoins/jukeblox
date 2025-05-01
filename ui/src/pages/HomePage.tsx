@@ -1,19 +1,17 @@
 import { Container, Typography, Box, Button, Grid } from '@mui/material'
-import { Container, Typography, Box, Button } from '@mui/material'
 import { SpotifyAuth } from '../components/SpotifyAuth'
 import { useAuth } from '../contexts/AuthContext'
 import { Link } from 'react-router-dom'
 import SearchIcon from '@mui/icons-material/Search'
 import GroupIcon from '@mui/icons-material/Group'
 import AddCircleIcon from '@mui/icons-material/AddCircle'
-
-const HomePage = () => {
-  const { isAuthenticated } = useAuth();
-
 import { SpotifyClient } from '../../../spotify-utils/src'
 import { ConnectWallet, Wallet } from '@coinbase/onchainkit/wallet'
 import { useAccount } from 'wagmi'
 import CreateSessionForm from '../components/CreateSessionForm'
+
+
+
 
 interface HomePageProps {
   clientId: string
@@ -24,6 +22,7 @@ interface HomePageProps {
 
 const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: HomePageProps) => {
   const account = useAccount();
+  const { isAuthenticated } = useAuth();
 
   return (
     <Container maxWidth="md">
@@ -137,6 +136,8 @@ const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: Home
               onAuthenticated={onAuthenticated}
             />
           </Box>
+          </Box>
+          </Box>
         )}
           
           {/* Blockchain Integration Section */}
@@ -192,8 +193,10 @@ const HomePage = ({ clientId, clientSecret, redirectUri, onAuthenticated }: Home
             />
           </Box>
         </Box>
-      </Box>
+
+
     </Container>
+
   )
 }
 
